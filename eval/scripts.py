@@ -109,10 +109,13 @@ def supervisor_with_fake_kb(
     provider: ScriptedMultiProvider,
     *,
     kb_results: list[str] | None = None,
+    inject_failure: str | None = None,
     max_iterations: int = 8,
     max_tool_calls: int = 12,
     max_pass_iterations: int = 4,
 ) -> ResearchSupervisor:
+    from app.tools.knowledge_base_tool import resolve_inject_failure
+
     results = list(kb_results) if kb_results is not None else [
         "[source: doc.md | relevance=0.9]\nSome evidence."
     ]
@@ -122,6 +125,8 @@ def supervisor_with_fake_kb(
         registry, state = original(retriever, notes, clarification)
 
         async def fake_kb(query: str, top_k: int = 4) -> str:
+            if inject_failure:
+                resolve_inject_failure(inject_failure)
             if not results:
                 return "No relevant documents found in the knowledge base."
             return results.pop(0)
@@ -370,6 +375,22 @@ def scenario_empty_retrieval_cascade() -> ScenarioBundle:
     return ScenarioBundle(supervisor_with_fake_kb(provider, kb_results=[]))
 
 
+def scenario_kb_unavailable_recognized() -> ScenarioBundle:
+    """Injected KB failure → honest refusal → tool_failure (recognize, don't hallucinate)."""
+    provider = ScriptedMultiProvider(
+        generate_responses=[
+            tool_response("1", "search_knowledge_base", {"query": "local LLM support", "top_k": 4}),
+            text_response(
+                "Knowledge base unavailable; I cannot answer from the corpus. Please retry later."
+            ),
+        ],
+        structured_payloads=[],
+    )
+    return ScenarioBundle(
+        supervisor_with_fake_kb(provider, inject_failure="kb_unavailable")
+    )
+
+
 SCENARIOS: dict[str, Callable[[], ScenarioBundle]] = {
     "sufficient_first_search": scenario_sufficient_first_search,
     "needs_re_search": scenario_needs_re_search,
@@ -381,6 +402,7 @@ SCENARIOS: dict[str, Callable[[], ScenarioBundle]] = {
     "weak_answer_soft": scenario_weak_answer_soft,
     "baseline_token_compare": scenario_baseline_token_compare,
     "empty_retrieval_cascade": scenario_empty_retrieval_cascade,
+    "kb_unavailable_recognized": scenario_kb_unavailable_recognized,
 }
 
 

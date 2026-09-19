@@ -99,3 +99,12 @@ cases:
       answer_keywords: [teleportation]
       expected_max_iterations: 2
       expected_failure_class: cascading_soft
+
+  - id: kb_unavailable_recognized
+    query: "What local LLM support is documented?"
+    scenario: kb_unavailable_recognized
+    expect:
+      stop_reason: tool_failure
+      required_tools: [search_knowledge_base]
+      answer_keywords: [unavailable, retry]
+      expected_max_iterations: 1

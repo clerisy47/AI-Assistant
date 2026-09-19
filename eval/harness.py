@@ -114,7 +114,25 @@ def render_report(scores: list[CaseScore], metrics: AggregateMetrics) -> str:
                 "(positive means multi-agent used more)."
             )
 
-    lines.append("")
+    lines.extend(
+        [
+            "",
+            "## Failure injection",
+            "",
+            "Phase 7 demo (case `kb_unavailable_recognized`):",
+            "",
+            "- **Injected:** `INJECT_FAILURE=kb_unavailable` (harness `inject_failure` on "
+            "`search_knowledge_base`) — tool returns a structured error with "
+            "`is_error=true`.",
+            "- **Observed:** agent acknowledges the outage (`unavailable` / `retry` in "
+            "the answer), supervisor stops with `stop_reason=tool_failure`, and no "
+            "corpus facts are invented.",
+            "- **Contrast:** case `empty_retrieval_cascade` scripts the opposite "
+            "(empty retrieval → confident fabricated answer → verifier rubber-stamp) "
+            "and is scored as `cascading_soft` to document hallucinate-vs-recognize.",
+            "",
+        ]
+    )
     return "\n".join(lines)
 
 

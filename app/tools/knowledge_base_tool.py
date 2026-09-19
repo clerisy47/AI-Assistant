@@ -10,10 +10,14 @@ still available at `/rag/query` for comparison; see app/api/rag.py.
 
 from __future__ import annotations
 
+import logging
 from typing import Optional
 
+from app.config import settings
 from app.llm.base import ToolDefinition
 from app.rag.retriever import Retriever
+
+logger = logging.getLogger(__name__)
 
 KNOWLEDGE_BASE_DEFINITION = ToolDefinition(
     name="search_knowledge_base",
@@ -33,6 +37,42 @@ KNOWLEDGE_BASE_DEFINITION = ToolDefinition(
     },
 )
 
+# Messages include markers used by eval/scoring.py (_EMPTY_RETRIEVAL_MARKERS).
+_INJECT_MESSAGES: dict[str, str] = {
+    "kb_unavailable": (
+        "Injected failure: knowledge base unavailable "
+        "(INJECT_FAILURE=kb_unavailable). Do not invent corpus facts."
+    ),
+    "kb_timeout": (
+        "Injected failure: knowledge base search timed out "
+        "(INJECT_FAILURE=kb_timeout). Do not invent corpus facts."
+    ),
+    "kb_malformed": (
+        "Injected failure: malformed retrieval payload "
+        "(INJECT_FAILURE=kb_malformed). Do not invent corpus facts."
+    ),
+}
+
+
+class KnowledgeBaseInjectedFailure(Exception):
+    """Raised when INJECT_FAILURE forces search_knowledge_base to fail."""
+
+
+def resolve_inject_failure(mode: str) -> None:
+    """Raise KnowledgeBaseInjectedFailure for known inject modes; no-op if empty.
+
+    Unknown non-empty modes log a warning and do not inject (avoid breaking prod
+    on typos).
+    """
+    cleaned = (mode or "").strip()
+    if not cleaned:
+        return
+    message = _INJECT_MESSAGES.get(cleaned)
+    if message is None:
+        logger.warning("Unknown INJECT_FAILURE=%r; ignoring (no injection)", cleaned)
+        return
+    raise KnowledgeBaseInjectedFailure(message)
+
 
 def make_knowledge_base_tool(retriever: Optional[Retriever]):
     """Bind a `search_knowledge_base` handler to a specific Retriever instance
@@ -45,6 +85,7 @@ def make_knowledge_base_tool(retriever: Optional[Retriever]):
     """
 
     async def search_knowledge_base(query: str, top_k: int = 4) -> str:
+        resolve_inject_failure(settings.INJECT_FAILURE)
         if retriever is None:
             return (
                 "The knowledge base is currently unavailable (vector store did not initialize). "

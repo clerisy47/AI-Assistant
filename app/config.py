@@ -51,6 +51,8 @@ class Settings(BaseSettings):
     MAX_RESEARCH_ITERATIONS: int = 8  # supervisor research↔verify rounds
     MAX_RESEARCH_TOOL_CALLS: int = 12  # global tool-call budget across research passes
     MAX_RESEARCH_PASS_ITERATIONS: int = 4  # LLM turns per research pass inside supervisor
+    # Failure injection for eval/demo: "" | kb_unavailable | kb_timeout | kb_malformed
+    INJECT_FAILURE: str = ""
 
     # --- App ------------------------------------------------------------------------
     APP_HOST: str = "0.0.0.0"

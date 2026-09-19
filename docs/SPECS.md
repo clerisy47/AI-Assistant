@@ -1,6 +1,6 @@
 # Specs — Verified Research Agent + MLOps
 
-**Status:** In progress — Phases 0–6 complete; next is Phase 7 (Failure injection)  
+**Status:** In progress — Phases 0–7 complete; next is Phase 8 (Track B docs + architecture)  
 **Base:** Existing W15 assistant (`POST /chat` tool loop, RAG-as-tool, FastAPI + Qdrant)  
 **Tracks covered:**
 - **Track B (Agentic AI):** Cross-source verified research with a multi-agent loop, context engineering, and a custom eval harness (Phases 0–9).
@@ -147,7 +147,7 @@ Each phase has: goal, deliverables, acceptance criteria, and suggested file touc
 | 4 | Verifier + supervisor + API | DONE | `app/agent/verifier_agent.py`, `app/agent/supervisor.py`, `app/api/research.py`, `tests/test_supervisor.py` |
 | 5 | Token / cost accounting | DONE | `app/llm/usage.py`, providers + `StructuredLLMResponse`, supervisor rollup, `baseline=single`, `tests/test_usage.py` |
 | 6 | Eval harness | DONE | `eval/harness.py`, `cases.yaml`, `report.md`, `tests/test_eval_scoring.py` |
-| 7 | Failure injection | NOT STARTED | |
+| 7 | Failure injection | DONE | `INJECT_FAILURE` in config, `knowledge_base_tool.py` inject hook, supervisor `tool_failure`, `eval` case `kb_unavailable_recognized`, `tests/test_failure_injection.py` |
 | 8 | Track B docs + architecture | NOT STARTED | |
 | 9 | Polish / Track B checklist | NOT STARTED | |
 | 10 | Environment (`uv`) | NOT STARTED | |
@@ -357,10 +357,10 @@ Coding agents: when you complete a phase, mark its deliverables `- [x]` below, s
 
 **Deliverables**
 
-- [ ] Configurable failure mode, e.g. env `INJECT_FAILURE=kb_unavailable` or harness flag:
+- [x] Configurable failure mode, e.g. env `INJECT_FAILURE=kb_unavailable` or harness flag:
   - Make `search_knowledge_base` return a structured error / timeout / malformed payload
-- [ ] One documented case in `eval/report.md` or README “Failure injection”
-- [ ] Assert desired behavior: agent **acknowledges** failure / asks to retry / refuses confident answer — does **not** invent corpus facts
+- [x] One documented case in `eval/report.md` or README “Failure injection”
+- [x] Assert desired behavior: agent **acknowledges** failure / asks to retry / refuses confident answer — does **not** invent corpus facts
 
 **Acceptance**
 

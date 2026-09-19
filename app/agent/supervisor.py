@@ -40,6 +40,27 @@ _RESEARCH_STOP_TO_API = {
     "max_tool_calls": "max_tool_calls",
 }
 
+_KB_FAILURE_MARKERS = (
+    "knowledge base unavailable",
+    "timed out",
+    "malformed",
+)
+
+
+def _kb_failed_without_evidence(tool_trace: list[dict], notes: EvidenceNotes) -> bool:
+    """True when KB search errored/injected and no evidence notes were written."""
+    if notes.items:
+        return False
+    for entry in tool_trace:
+        if entry.get("tool") != "search_knowledge_base":
+            continue
+        if entry.get("is_error"):
+            return True
+        result = str(entry.get("result") or "").lower()
+        if any(m in result for m in _KB_FAILURE_MARKERS):
+            return True
+    return False
+
 
 class ResearchSupervisor:
     def __init__(
@@ -160,9 +181,14 @@ class ResearchSupervisor:
         tool_trace = list(research_result["tool_trace"])
         for entry in tool_trace:
             entry.setdefault("agent", "research")
-        stop = _RESEARCH_STOP_TO_API.get(
-            research_result["stop_reason"], research_result["stop_reason"]
-        )
+        if research_result["stop_reason"] == "final" and _kb_failed_without_evidence(
+            tool_trace, notes
+        ):
+            stop = "tool_failure"
+        else:
+            stop = _RESEARCH_STOP_TO_API.get(
+                research_result["stop_reason"], research_result["stop_reason"]
+            )
         return self._response(
             answer=research_result.get("draft_answer") or "",
             verification=None,
@@ -262,6 +288,19 @@ class ResearchSupervisor:
                     tool_trace=tool_trace,
                     iterations=supervisor_steps,
                     stop_reason="max_tool_calls",
+                    token_usage=totals,
+                )
+
+            if research_result["stop_reason"] == "final" and _kb_failed_without_evidence(
+                tool_trace, notes
+            ):
+                return self._response(
+                    answer=last_draft,
+                    verification=None,
+                    evidence_notes=notes,
+                    tool_trace=tool_trace,
+                    iterations=supervisor_steps,
+                    stop_reason="tool_failure",
                     token_usage=totals,
                 )
 

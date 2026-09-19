@@ -108,10 +108,13 @@ def _supervisor_with_fake_kb(
     provider: ScriptedMultiProvider,
     *,
     kb_results: list[str] | None = None,
+    inject_failure: str | None = None,
     max_iterations: int = 8,
     max_tool_calls: int = 12,
     max_pass_iterations: int = 4,
 ) -> ResearchSupervisor:
+    from app.tools.knowledge_base_tool import resolve_inject_failure
+
     results = list(kb_results or ["[source: doc.md | relevance=0.9]\nSome evidence."])
     original = build_research_registry
 
@@ -119,6 +122,8 @@ def _supervisor_with_fake_kb(
         registry, state = original(retriever, notes, clarification)
 
         async def fake_kb(query: str, top_k: int = 4) -> str:
+            if inject_failure:
+                resolve_inject_failure(inject_failure)
             if not results:
                 return "No relevant documents found in the knowledge base."
             return results.pop(0)
@@ -307,3 +312,56 @@ def test_single_baseline_skips_verifier_and_reports_tokens():
     assert usage["total_tokens"] > 0
     assert usage["by_agent"]["research"] == usage["total_tokens"]
     assert "verifier" not in usage["by_agent"]
+
+
+def test_kb_inject_failure_stops_without_verifier():
+    """Phase 7: injected KB error + empty notes → tool_failure, no fabricate path."""
+    provider = ScriptedMultiProvider(
+        generate_responses=[
+            _tool_response("1", "search_knowledge_base", {"query": "local LLMs", "top_k": 4}),
+            _text_response(
+                "Knowledge base unavailable; I cannot answer from the corpus. Please retry later."
+            ),
+        ],
+        structured_payloads=[],
+    )
+    supervisor = _supervisor_with_fake_kb(provider, inject_failure="kb_unavailable")
+    result = _run(supervisor, question="What local LLM support is documented?")
+
+    assert result["stop_reason"] == "tool_failure"
+    assert result["verification"] is None
+    assert provider.structured_calls == []
+    answer_lower = result["answer"].lower()
+    assert "unavailable" in answer_lower
+    assert "retry" in answer_lower
+    assert "teleportation" not in answer_lower
+    kb_trace = [e for e in result["tool_trace"] if e["tool"] == "search_knowledge_base"]
+    assert kb_trace
+    assert kb_trace[0]["is_error"] is True
+    assert "knowledge base unavailable" in kb_trace[0]["result"].lower()
+    assert result["evidence_notes"]["items"] == []
+
+
+def test_single_baseline_tool_failure_not_mapped_to_verified():
+    provider = ScriptedMultiProvider(
+        generate_responses=[
+            _tool_response("1", "search_knowledge_base", {"query": "local", "top_k": 4}),
+            _text_response(
+                "Knowledge base unavailable; I cannot answer from the corpus. Please retry later."
+            ),
+        ],
+        structured_payloads=[],
+    )
+    supervisor = _supervisor_with_fake_kb(provider, inject_failure="kb_unavailable")
+    try:
+        result = asyncio.run(
+            supervisor.run("What about local LLMs?", temperature=0.0, baseline="single")
+        )
+    finally:
+        patcher = getattr(supervisor, "_test_patcher", None)
+        if patcher is not None:
+            patcher.stop()
+
+    assert result["stop_reason"] == "tool_failure"
+    assert result["verification"] is None
+    assert "unavailable" in result["answer"].lower()

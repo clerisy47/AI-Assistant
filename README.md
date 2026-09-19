@@ -378,6 +378,8 @@ make eval
 
 Cases live in [`eval/cases.yaml`](eval/cases.yaml); the latest Markdown
 table + failure log is written to [`eval/report.md`](eval/report.md).
+That report also documents **failure injection** (`INJECT_FAILURE=kb_unavailable`):
+the agent must acknowledge KB errors instead of inventing corpus facts.
 
 Live integration testing (a real Qdrant, a real model) is intentionally out
 of scope for this suite -- see [Notes & limitations](#notes--limitations).
