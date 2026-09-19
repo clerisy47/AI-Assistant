@@ -8,17 +8,18 @@ This directory owns the runtime decision loops:
 
 - `orchestrator.py` — existing `/chat` tool loop (keep stable)
 - `evidence_notes.py` / `context_budget.py` — structured notes + retrieval capping (Phase 1)
-- Skill catalog + `load_skill`: `app/tools/skill_tool.py` (`build_skills_system_prefix`, `register_skill_tools`) — Phase 2; attach in research agent only (Phase 3)
-- Planned per `docs/SPECS.md`: `research_agent.py`, `verifier_agent.py`, `supervisor.py`
+- Skill catalog + `load_skill`: `app/tools/skill_tool.py` (`build_skills_system_prefix`, `register_skill_tools`) — Phase 2; attached in research agent only
+- `research_agent.py` — decision-capable research loop (Phase 3); tools via `app/tools/research_tools.py` (`build_research_registry`)
+- Planned per `docs/SPECS.md`: `verifier_agent.py`, `supervisor.py`
 
 ## Rules
 
 1. **Separate contexts for Research vs Verifier.** Do not pass the full exploratory tool dump into the verifier. Pass draft + `EvidenceNotes` (and optional capped re-search if specs allow).
 2. **Every loop returns structured stop metadata:** `stop_reason`, `iterations`, `tool_trace`, and token usage once Phase 5 lands.
 3. **Tool errors are data.** Surface them in the trace; let the model (or supervisor) decide to clarify/fail — never swallow into a fabricated answer.
-4. **Budget before cleverness.** Enforce `MAX_RESEARCH_ITERATIONS` / `MAX_RESEARCH_TOOL_CALLS` in the supervisor, not only in prompts.
+4. **Budget before cleverness.** Enforce `MAX_RESEARCH_ITERATIONS` / `MAX_RESEARCH_TOOL_CALLS` in the research agent (and later supervisor), not only in prompts.
 5. **Reuse `ToolRegistry` and `LLMProvider`.** Do not call vendor SDKs from agent modules.
-6. **Tests:** Prefer scripted providers (see `tests/test_agent_orchestrator.py`) for branching paths: re-search, verify-fail-revise, max-iterations, tool failure.
+6. **Tests:** Prefer scripted providers (see `tests/test_agent_orchestrator.py` / `tests/test_research_agent.py`) for branching paths: re-search, clarify, max-iterations, tool failure.
 
 ## Skill vs agent reminder
 

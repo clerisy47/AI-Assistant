@@ -20,7 +20,8 @@ When invoked:
 4. Follow non-negotiables: no RAG-in-a-for-loop; hard stop budgets; keep `/chat` working; tools via `ToolRegistry`; prompt revisions must be trace-driven.
 5. Add or update unit/scripted tests for new branching behavior; for MLOps, ensure reports land under `mlops/reports/` when producing runs.
 6. Run `pytest` / `uv run pytest` on affected tests and fix failures you introduced.
-7. Return a short summary: files changed, phase status, what remains.
+7. **Update `docs/SPECS.md` for the finished phase** (root `AGENTS.md` → “Updating SPECS after a phase”): check off deliverables `- [x]`, refresh the header `**Status:**` line and the Implementation progress table. A phase is not done until SPECS reflects it.
+8. Return a short summary: files changed, phase status, what remains.
 
 If requirements are ambiguous, follow SPECS §10 recommendations unless the user overrides.
 

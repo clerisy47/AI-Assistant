@@ -1,13 +1,13 @@
 # Specs — Verified Research Agent + MLOps
 
-**Status:** Specs only (not yet implemented)  
+**Status:** In progress — Phases 0–3 complete; next is Phase 4 (Verifier + supervisor + `POST /research`)  
 **Base:** Existing W15 assistant (`POST /chat` tool loop, RAG-as-tool, FastAPI + Qdrant)  
 **Tracks covered:**
 - **Track B (Agentic AI):** Cross-source verified research with a multi-agent loop, context engineering, and a custom eval harness (Phases 0–9).
 - **Track A (Tool Data Science / MLOps):** `uv` env, MLflow experiment tracking on prompts/config + full agent traces, Evidently LLM regression tests, optional Airflow scheduled eval (Phases 10–14).
 
 **Goal:** Extend the assistant with an agentic feature *and* apply MLOps disciplines to configurations and behavior (prompts, retrieval settings, agent parameters, harness metrics) — not to a trained model.  
-**Orientation for coding agents:** see root [`AGENTS.md`](../AGENTS.md).
+**Orientation for coding agents:** see root [`AGENTS.md`](../AGENTS.md). When a phase’s acceptance criteria are met, update this file’s checkboxes and status (see AGENTS.md → “Updating SPECS after a phase”).
 
 ---
 
@@ -136,6 +136,28 @@ Update `docs/architecture.md` / `.svg` in Phase 8 / 14 to show the agentic loop,
 
 Each phase has: goal, deliverables, acceptance criteria, and suggested file touchpoints. Phases are sequential unless noted.
 
+### Implementation progress
+
+| Phase | Name | Status | Evidence (when DONE) |
+|------:|------|--------|----------------------|
+| 0 | Spec lock & baseline inventory | DONE | This file + root `AGENTS.md` |
+| 1 | Evidence notes & context utilities | DONE | `app/agent/evidence_notes.py`, `context_budget.py`, `tests/test_evidence_notes.py` |
+| 2 | Skills progressive disclosure | DONE | `skills/verified_research/SKILL.md`, `app/tools/skill_tool.py`, `tests/test_skill_tool.py` |
+| 3 | Research agent loop | DONE | `app/agent/research_agent.py`, `app/tools/research_tools.py`, `tests/test_research_agent.py` |
+| 4 | Verifier + supervisor + API | NOT STARTED | |
+| 5 | Token / cost accounting | NOT STARTED | |
+| 6 | Eval harness | NOT STARTED | |
+| 7 | Failure injection | NOT STARTED | |
+| 8 | Track B docs + architecture | NOT STARTED | |
+| 9 | Polish / Track B checklist | NOT STARTED | |
+| 10 | Environment (`uv`) | NOT STARTED | |
+| 11 | MLflow experiments | NOT STARTED | |
+| 12 | Evidently regression | NOT STARTED | |
+| 13 | Airflow DAG | NOT STARTED | |
+| 14 | MLOps docs polish | NOT STARTED | |
+
+Coding agents: when you complete a phase, mark its deliverables `- [x]` below, set this table’s Status to `DONE` (or `PARTIAL`), and refresh the header `**Status:**` line.
+
 ---
 
 ### Phase 0 — Spec lock & baseline inventory
@@ -144,9 +166,9 @@ Each phase has: goal, deliverables, acceptance criteria, and suggested file touc
 
 **Deliverables**
 
-- [ ] This specs file reviewed / adjusted if needed
-- [ ] One-sentence feature justification finalized (§0)
-- [ ] Note current baseline: `AgentOrchestrator` in `app/agent/orchestrator.py`, tools in `app/tools/`, eval gap (unit tests only)
+- [x] This specs file reviewed / adjusted if needed
+- [x] One-sentence feature justification finalized (§0)
+- [x] Note current baseline: `AgentOrchestrator` in `app/agent/orchestrator.py`, tools in `app/tools/`, eval gap (unit tests only)
 
 **Acceptance**
 
@@ -163,7 +185,7 @@ Each phase has: goal, deliverables, acceptance criteria, and suggested file touc
 
 **Deliverables**
 
-- [ ] `app/agent/evidence_notes.py` — Pydantic models, e.g.:
+- [x] `app/agent/evidence_notes.py` — Pydantic models, e.g.:
 
   ```python
   class EvidenceItem(BaseModel):
@@ -179,10 +201,10 @@ Each phase has: goal, deliverables, acceptance criteria, and suggested file touc
       sufficient_hypothesis: bool = False
   ```
 
-- [ ] `app/agent/context_budget.py` — helpers:
+- [x] `app/agent/context_budget.py` — helpers:
   - `cap_tool_result(text, max_chars)`
   - `compact_messages(messages, keep_last_n_tool_results)` optional
-- [ ] Unit tests for capping and note serialization
+- [x] Unit tests for capping and note serialization
 
 **Acceptance**
 
@@ -199,10 +221,10 @@ Each phase has: goal, deliverables, acceptance criteria, and suggested file touc
 
 **Deliverables**
 
-- [ ] `skills/verified_research/SKILL.md` — short front-matter / description (~10–20 lines) + full procedure body (**stub already present**; refine during implementation)
-- [ ] Tool `load_skill(name: str)` registered only for the research agent
-- [ ] Initial system prompt includes **only** skill titles + one-line descriptions; full body injected after `load_skill`
-- [ ] Unit test: without load, full body absent from messages; after load, present once
+- [x] `skills/verified_research/SKILL.md` — short front-matter / description (~10–20 lines) + full procedure body (**stub already present**; refine during implementation)
+- [x] Tool `load_skill(name: str)` registered only for the research agent
+- [x] Initial system prompt includes **only** skill titles + one-line descriptions; full body injected after `load_skill`
+- [x] Unit test: without load, full body absent from messages; after load, present once
 
 **Acceptance**
 
@@ -221,16 +243,16 @@ Each phase has: goal, deliverables, acceptance criteria, and suggested file touc
 
 **Deliverables**
 
-- [ ] `app/agent/research_agent.py` (or extend orchestrator with a dedicated class)
-- [ ] Tools available:
+- [x] `app/agent/research_agent.py` (or extend orchestrator with a dedicated class)
+- [x] Tools available:
   - `search_knowledge_base` (existing; results capped)
   - `load_skill`
   - `update_evidence_notes` (write structured notes)
   - `ask_clarification` (ends turn with a question to the user)
   - Existing builtins optional
-- [ ] Loop allows **&gt; 1 iteration** per request; model chooses next action from tool results
-- [ ] Hard stop: `max_iterations` / `max_tool_calls`
-- [ ] Returns: `{draft_answer, evidence_notes, tool_trace, iterations, token_usage}`
+- [x] Loop allows **&gt; 1 iteration** per request; model chooses next action from tool results
+- [x] Hard stop: `max_iterations` / `max_tool_calls`
+- [x] Returns: `{draft_answer, evidence_notes, tool_trace, iterations, token_usage}`
 
 **Acceptance**
 

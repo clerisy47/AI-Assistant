@@ -48,6 +48,8 @@ class Settings(BaseSettings):
     EVIDENCE_EXCERPT_MAX_CHARS: int = 500
     TOOL_RESULT_MAX_CHARS: int = 2000
     SKILLS_DIR: str = "skills"
+    MAX_RESEARCH_ITERATIONS: int = 8
+    MAX_RESEARCH_TOOL_CALLS: int = 12
 
     # --- App ------------------------------------------------------------------------
     APP_HOST: str = "0.0.0.0"

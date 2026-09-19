@@ -39,3 +39,4 @@ description: >-
 - Scripted test shows: insufficient first search → second search → verify → finalize (or revise).
 - Max-iteration path returns clear `stop_reason`.
 - `make test` passes.
+- `docs/SPECS.md` updated for the finished phase (checkboxes `- [x]`, progress table, header `**Status:**`) per root `AGENTS.md`.

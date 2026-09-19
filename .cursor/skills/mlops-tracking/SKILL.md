@@ -54,3 +54,4 @@ uv.lock
 - MLflow shows ≥3 comparable runs with traces
 - Evidently HTML exists; `pct_tests_passed` in MLflow
 - README a–d describe *this* system’s choices and trade-offs
+- `docs/SPECS.md` updated for finished Phase 10–14 items (checkboxes, progress table, header status) per root `AGENTS.md`

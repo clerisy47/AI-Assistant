@@ -32,9 +32,10 @@ Product agents are what graders run. Cursor subagents help *build* them.
 3. **Keep `/chat` and `/rag/*` working.** Verified research is additive (`POST /research`), not a rewrite of the W15 baseline.
 4. **No confident answers from failed tools.** On KB errors, timeouts, or malformed retrieval, acknowledge failure — do not invent corpus facts.
 5. **Specs are source of truth for the extension.** If README and `docs/SPECS.md` drift, fix docs to match code after implementing — don’t invent a third design.
-6. **Match existing style.** Python 3.11, FastAPI, Pydantic v2, DI via `Depends` / lifespan, tools via `ToolRegistry`. Prefer extending `LLMProvider` / orchestrator patterns over new frameworks (no LangGraph/Crew unless the user explicitly asks).
-7. **Prompt revisions are evidence-driven.** New `prompts/prompt_vN` must cite a specific failure from prior MLflow traces in `prompts/CHANGELOG.md` — no speculative prompt churn.
-8. **Prefer `uv` once Phase 10 lands.** Use `uv sync` / `uv run`; do not reintroduce unpinned `pip install -r` as the primary path.
+6. **Update `docs/SPECS.md` when a phase completes.** Leaving checkboxes stale is a docs bug. See [Updating SPECS after a phase](#updating-specs-after-a-phase).
+7. **Match existing style.** Python 3.11, FastAPI, Pydantic v2, DI via `Depends` / lifespan, tools via `ToolRegistry`. Prefer extending `LLMProvider` / orchestrator patterns over new frameworks (no LangGraph/Crew unless the user explicitly asks).
+8. **Prompt revisions are evidence-driven.** New `prompts/prompt_vN` must cite a specific failure from prior MLflow traces in `prompts/CHANGELOG.md` — no speculative prompt churn.
+9. **Prefer `uv` once Phase 10 lands.** Use `uv sync` / `uv run`; do not reintroduce unpinned `pip install -r` as the primary path.
 
 ## Architecture (current + target)
 
@@ -50,7 +51,7 @@ Details: [`docs/architecture.md`](docs/architecture.md), [`docs/SPECS.md`](docs/
 |---|---|
 | `docs/SPECS.md` | Phased build plan (Part I agentic + Part II MLOps) |
 | `docs/architecture.md` / `.svg` | Architecture diagram (update when agentic + MLOps land) |
-| `app/agent/` | Orchestrator today; research / verifier / supervisor next |
+| `app/agent/` | Orchestrator + research agent; verifier / supervisor next |
 | `app/tools/` | Tool definitions + handlers; register new tools here |
 | `app/llm/` | Provider ABC + Anthropic + OpenAI-compatible (incl. vLLM) |
 | `app/rag/` | Chunk → embed → Qdrant → retrieve |
@@ -74,7 +75,23 @@ Python 3.11 · FastAPI · Pydantic Settings · Anthropic SDK · OpenAI SDK · Qd
 2. Prefer the Cursor skill that matches the task (see below) instead of inventing a parallel workflow.
 3. For large or parallel work, delegate to a `.cursor/agents/` subagent.
 4. Run `make test` (or `pytest -v`) after behavioral changes. Use `make eval` once the harness exists.
-5. Do not commit unless the user asks.
+5. When the phase’s acceptance criteria are met, **update [`docs/SPECS.md`](docs/SPECS.md)** (see below) before declaring done.
+6. Do not commit unless the user asks.
+
+## Updating SPECS after a phase
+
+Whenever you finish implementing a phase from [`docs/SPECS.md`](docs/SPECS.md) (acceptance criteria met + tests green), update that file in the **same change set** as the code. Do not wait for Phase 8 / 14 docs polish.
+
+**Required edits to `docs/SPECS.md`:**
+
+1. **Deliverable checkboxes** — Mark every completed item under that phase `- [x]`. Leave unmet items `- [ ]` (partial phase: say so in the progress line).
+2. **Header status** — Refresh the top `**Status:**` line to reflect reality, e.g. `In progress — Phases 0–N complete; next is Phase N+1 (…)` or `Complete` when both tracks are done. Never leave `Specs only (not yet implemented)` once any phase has landed.
+3. **Progress summary** — Keep the short “Implementation progress” table (near §3) in sync: each phase `DONE` / `PARTIAL` / `NOT STARTED` with a one-line evidence path if useful.
+4. **Do not rewrite the phase plan** — Check off and status-update only. Do not invent a third design in SPECS; if implementation diverged, adjust SPECS wording minimally so it matches code, then check boxes.
+
+**Also update** nested [`app/agent/AGENTS.md`](app/agent/AGENTS.md) (or other package `AGENTS.md`) when that package’s planned vs present files change.
+
+**Done means:** code + tests + SPECS checkboxes/status for that phase. A phase that is implemented in code but still unchecked in SPECS is incomplete.
 
 ## Cursor skills (project)
 
