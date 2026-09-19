@@ -30,7 +30,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.api import chat, health, rag, structured
+from app.api import chat, health, rag, research, structured
 from app.config import settings
 from app.rag.embeddings import EmbeddingModel
 from app.rag.ingestion import IngestionService
@@ -97,5 +97,6 @@ app = FastAPI(
 
 app.include_router(health.router)
 app.include_router(chat.router)
+app.include_router(research.router)
 app.include_router(rag.router)
 app.include_router(structured.router)

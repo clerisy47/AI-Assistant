@@ -1,8 +1,8 @@
-"""Decision-capable research agent loop (Phase 3).
+"""Decision-capable research agent loop (Phase 3+).
 
 Iterates: search → evaluate sufficiency via evidence notes → search again /
 clarify / draft. Hard-stopped by max_iterations and max_tool_calls.
-Not wired to HTTP yet — Phase 4 supervisor will call ResearchAgent.run.
+Phase 4 supervisor calls ResearchAgent.run with remaining budgets / revise hints.
 """
 
 from __future__ import annotations
@@ -117,10 +117,25 @@ class ResearchAgent:
             lines.append(f"- [{item.source}] {item.excerpt}")
         return "\n".join(lines)
 
+    def _user_content(self, question: str, revise_hints: list[str] | None) -> str:
+        if not revise_hints:
+            return question
+        lines = [
+            question,
+            "",
+            "Verifier feedback — revise the draft and gather any missing evidence:",
+        ]
+        for hint in revise_hints:
+            cleaned = (hint or "").strip()
+            if cleaned:
+                lines.append(f"- {cleaned}")
+        return "\n".join(lines)
+
     async def run(
         self,
         question: str,
         *,
+        revise_hints: list[str] | None = None,
         temperature: float = 0.3,
         top_p: float = 1.0,
         max_tokens: int | None = None,
@@ -128,7 +143,9 @@ class ResearchAgent:
         if not self._notes.question:
             self._notes.question = question
 
-        messages: list[LLMMessage] = [LLMMessage(role="user", content=question)]
+        messages: list[LLMMessage] = [
+            LLMMessage(role="user", content=self._user_content(question, revise_hints))
+        ]
         trace: list[dict] = []
         tool_defs = self._tools.definitions()
         system_prompt = self._system_prompt()
@@ -172,6 +189,7 @@ class ResearchAgent:
                 tool_calls_used += 1
                 trace.append(
                     {
+                        "agent": "research",
                         "tool": call.name,
                         "arguments": call.arguments,
                         "result": result_text,

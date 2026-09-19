@@ -1,6 +1,6 @@
 # Specs — Verified Research Agent + MLOps
 
-**Status:** In progress — Phases 0–3 complete; next is Phase 4 (Verifier + supervisor + `POST /research`)  
+**Status:** In progress — Phases 0–4 complete; next is Phase 5 (Token / cost accounting)  
 **Base:** Existing W15 assistant (`POST /chat` tool loop, RAG-as-tool, FastAPI + Qdrant)  
 **Tracks covered:**
 - **Track B (Agentic AI):** Cross-source verified research with a multi-agent loop, context engineering, and a custom eval harness (Phases 0–9).
@@ -144,7 +144,7 @@ Each phase has: goal, deliverables, acceptance criteria, and suggested file touc
 | 1 | Evidence notes & context utilities | DONE | `app/agent/evidence_notes.py`, `context_budget.py`, `tests/test_evidence_notes.py` |
 | 2 | Skills progressive disclosure | DONE | `skills/verified_research/SKILL.md`, `app/tools/skill_tool.py`, `tests/test_skill_tool.py` |
 | 3 | Research agent loop | DONE | `app/agent/research_agent.py`, `app/tools/research_tools.py`, `tests/test_research_agent.py` |
-| 4 | Verifier + supervisor + API | NOT STARTED | |
+| 4 | Verifier + supervisor + API | DONE | `app/agent/verifier_agent.py`, `app/agent/supervisor.py`, `app/api/research.py`, `tests/test_supervisor.py` |
 | 5 | Token / cost accounting | NOT STARTED | |
 | 6 | Eval harness | NOT STARTED | |
 | 7 | Failure injection | NOT STARTED | |
@@ -270,15 +270,15 @@ Coding agents: when you complete a phase, mark its deliverables `- [x]` below, s
 
 **Deliverables**
 
-- [ ] `app/agent/verifier_agent.py`
+- [x] `app/agent/verifier_agent.py`
   - Input: user question + draft + `EvidenceNotes` (not full exploratory transcript)
   - Output: structured `VerificationResult` (`sufficient`, `unsupported_claims`, `suggested_next_action`)
-- [ ] `app/agent/supervisor.py`
+- [x] `app/agent/supervisor.py`
   - Alternates or routes: research → verify → (re-research | finalize | clarify)
   - Enforces global budgets
   - Aggregates `tool_trace` and token usage from both agents
-- [ ] API: `POST /research` (preferred) **or** `ChatRequest.mode = "verified_research"`
-- [ ] Response schema includes: `answer`, `verification`, `tool_trace`, `iterations`, `stop_reason`, `token_usage`
+- [x] API: `POST /research` (preferred) **or** `ChatRequest.mode = "verified_research"`
+- [x] Response schema includes: `answer`, `verification`, `tool_trace`, `iterations`, `stop_reason`, `token_usage`
 
 **Acceptance**
 
@@ -461,8 +461,9 @@ Keep `POST /chat` unchanged for backward compatibility.
 
 | Setting | Default | Purpose |
 |---|---|---|
-| `MAX_RESEARCH_ITERATIONS` | `8` | Supervisor step budget |
-| `MAX_RESEARCH_TOOL_CALLS` | `12` | Global tool-call budget |
+| `MAX_RESEARCH_ITERATIONS` | `8` | Supervisor research↔verify round budget |
+| `MAX_RESEARCH_TOOL_CALLS` | `12` | Global tool-call budget across research passes |
+| `MAX_RESEARCH_PASS_ITERATIONS` | `4` | LLM turns per research pass inside the supervisor |
 | `EVIDENCE_EXCERPT_MAX_CHARS` | `500` | Cap per evidence item |
 | `TOOL_RESULT_MAX_CHARS` | `2000` | Cap raw tool results in research context |
 | `SKILLS_DIR` | `skills` | Progressive disclosure root |

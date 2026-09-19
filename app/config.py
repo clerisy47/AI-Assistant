@@ -48,8 +48,9 @@ class Settings(BaseSettings):
     EVIDENCE_EXCERPT_MAX_CHARS: int = 500
     TOOL_RESULT_MAX_CHARS: int = 2000
     SKILLS_DIR: str = "skills"
-    MAX_RESEARCH_ITERATIONS: int = 8
-    MAX_RESEARCH_TOOL_CALLS: int = 12
+    MAX_RESEARCH_ITERATIONS: int = 8  # supervisor research↔verify rounds
+    MAX_RESEARCH_TOOL_CALLS: int = 12  # global tool-call budget across research passes
+    MAX_RESEARCH_PASS_ITERATIONS: int = 4  # LLM turns per research pass inside supervisor
 
     # --- App ------------------------------------------------------------------------
     APP_HOST: str = "0.0.0.0"
