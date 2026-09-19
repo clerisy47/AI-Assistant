@@ -8,6 +8,7 @@ This directory owns the runtime decision loops:
 
 - `orchestrator.py` — existing `/chat` tool loop (keep stable)
 - `evidence_notes.py` / `context_budget.py` — structured notes + retrieval capping (Phase 1)
+- Skill catalog + `load_skill`: `app/tools/skill_tool.py` (`build_skills_system_prefix`, `register_skill_tools`) — Phase 2; attach in research agent only (Phase 3)
 - Planned per `docs/SPECS.md`: `research_agent.py`, `verifier_agent.py`, `supervisor.py`
 
 ## Rules

@@ -1,15 +1,11 @@
 ---
 name: verified_research
 description: >-
-  Procedure for corpus-backed research with iterative search, evidence notes,
-  and handoff to verification. Load when answering comparison, consistency,
-  or multi-source questions that may need more than one retrieval.
+  Corpus-backed research with iterative search, evidence notes, and
+  verification handoff. Use for comparison, consistency, or multi-source questions.
 ---
 
 # Verified Research (runtime skill)
-
-Short description for system prompt catalogs:
-**Verified research** — iteratively search the knowledge base, record evidence notes, draft an answer, and request verification before finalizing.
 
 ## When relevant
 
