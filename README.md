@@ -366,6 +366,19 @@ make test
 # or: pip install -r requirements-dev.txt && pytest -v
 ```
 
+### Evaluation harness (verified research)
+
+A from-scratch harness (no LangSmith / RAGAS / DeepEval) scores the
+`POST /research` multi-agent path with scripted LLM responses:
+
+```bash
+make eval
+# or: python -m eval.harness
+```
+
+Cases live in [`eval/cases.yaml`](eval/cases.yaml); the latest Markdown
+table + failure log is written to [`eval/report.md`](eval/report.md).
+
 Live integration testing (a real Qdrant, a real model) is intentionally out
 of scope for this suite -- see [Notes & limitations](#notes--limitations).
 

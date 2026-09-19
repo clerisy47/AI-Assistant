@@ -1,0 +1,101 @@
+# Eval cases for verified-research harness (Phase 6).
+# Each case maps to a scripted scenario in eval/scripts.py — no live LLM/Qdrant.
+
+cases:
+  - id: sufficient_first_search
+    query: "What local LLM support does this assistant document?"
+    scenario: sufficient_first_search
+    expect:
+      stop_reason: verified
+      required_tools: [search_knowledge_base, update_evidence_notes]
+      answer_keywords: [vLLM, OpenAI-compatible]
+      expected_max_iterations: 2
+      verification_sufficient: true
+
+  - id: needs_re_search
+    query: "Compare local LLM support claims in the docs."
+    scenario: needs_re_search
+    expect:
+      stop_reason: verified
+      required_tools: [search_knowledge_base, update_evidence_notes]
+      answer_keywords: [OpenAI-compatible, vLLM]
+      expected_max_iterations: 3
+      verification_sufficient: true
+
+  - id: clarification
+    query: "Compare things."
+    scenario: clarification
+    expect:
+      stop_reason: clarification
+      required_tools: [ask_clarification]
+      answer_keywords: [Which docs]
+      expected_max_iterations: 1
+
+  - id: verify_fail_then_revise
+    query: "Summarize local LLM provider support and confirm against sources."
+    scenario: verify_fail_then_revise
+    expect:
+      stop_reason: verified
+      required_tools: [search_knowledge_base, update_evidence_notes]
+      answer_keywords: [OpenAI-compatible]
+      expected_max_iterations: 3
+      verification_sufficient: true
+
+  - id: max_iterations_stop
+    query: "Keep researching forever about RAG."
+    scenario: max_iterations_stop
+    expect:
+      stop_reason: max_iterations
+      required_tools: []
+      answer_keywords: [partial]
+      expected_max_iterations: 2
+
+  - id: max_tool_calls_stop
+    query: "Search many times about ingestion."
+    scenario: max_tool_calls_stop
+    expect:
+      stop_reason: max_tool_calls
+      required_tools: [search_knowledge_base]
+      answer_keywords: [partial]
+      expected_max_iterations: 4
+
+  - id: tool_order_search_then_notes
+    query: "What local LLM support does this assistant document?"
+    scenario: tool_order_search_then_notes
+    expect:
+      stop_reason: verified
+      required_tools: [search_knowledge_base, update_evidence_notes]
+      tool_order: [search_knowledge_base, update_evidence_notes]
+      answer_keywords: [vLLM]
+      expected_max_iterations: 2
+
+  - id: weak_answer_soft
+    query: "What local LLM support does this assistant document?"
+    scenario: weak_answer_soft
+    expect:
+      stop_reason: verified
+      required_tools: [search_knowledge_base, update_evidence_notes]
+      # Rubric keyword intentionally absent from the weak draft → soft failure
+      answer_keywords: [OpenAI-compatible]
+      expected_max_iterations: 2
+      expected_failure_class: soft
+
+  - id: baseline_token_compare
+    query: "What about local LLMs?"
+    scenario: baseline_token_compare
+    expect:
+      stop_reason: verified
+      required_tools: [search_knowledge_base, update_evidence_notes]
+      answer_keywords: [vLLM]
+      expected_max_iterations: 2
+      compare_baseline: true
+
+  - id: empty_retrieval_cascade
+    query: "What secret feature does the corpus document?"
+    scenario: empty_retrieval_cascade
+    expect:
+      stop_reason: verified
+      required_tools: [search_knowledge_base]
+      answer_keywords: [teleportation]
+      expected_max_iterations: 2
+      expected_failure_class: cascading_soft

@@ -1,4 +1,4 @@
-.PHONY: up up-local down logs test ingest fmt-check build
+.PHONY: up up-local down logs test eval ingest fmt-check build
 
 up:            ## Start app + Qdrant, using a cloud LLM provider
 	docker compose up --build
@@ -21,3 +21,7 @@ ingest:        ## Ingest sample_docs/ into the running vector store
 test:          ## Run the unit test suite locally (no Docker needed)
 	pip install -r requirements-dev.txt --break-system-packages
 	pytest -v
+
+eval:          ## Run verified-research eval harness (scripted; writes eval/report.md)
+	pip install -r requirements-dev.txt --break-system-packages
+	python -m eval.harness

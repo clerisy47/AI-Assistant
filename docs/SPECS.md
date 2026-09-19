@@ -1,6 +1,6 @@
 # Specs — Verified Research Agent + MLOps
 
-**Status:** In progress — Phases 0–5 complete; next is Phase 6 (Eval harness)  
+**Status:** In progress — Phases 0–6 complete; next is Phase 7 (Failure injection)  
 **Base:** Existing W15 assistant (`POST /chat` tool loop, RAG-as-tool, FastAPI + Qdrant)  
 **Tracks covered:**
 - **Track B (Agentic AI):** Cross-source verified research with a multi-agent loop, context engineering, and a custom eval harness (Phases 0–9).
@@ -146,7 +146,7 @@ Each phase has: goal, deliverables, acceptance criteria, and suggested file touc
 | 3 | Research agent loop | DONE | `app/agent/research_agent.py`, `app/tools/research_tools.py`, `tests/test_research_agent.py` |
 | 4 | Verifier + supervisor + API | DONE | `app/agent/verifier_agent.py`, `app/agent/supervisor.py`, `app/api/research.py`, `tests/test_supervisor.py` |
 | 5 | Token / cost accounting | DONE | `app/llm/usage.py`, providers + `StructuredLLMResponse`, supervisor rollup, `baseline=single`, `tests/test_usage.py` |
-| 6 | Eval harness | NOT STARTED | |
+| 6 | Eval harness | DONE | `eval/harness.py`, `cases.yaml`, `report.md`, `tests/test_eval_scoring.py` |
 | 7 | Failure injection | NOT STARTED | |
 | 8 | Track B docs + architecture | NOT STARTED | |
 | 9 | Polish / Track B checklist | NOT STARTED | |
@@ -317,12 +317,12 @@ Coding agents: when you complete a phase, mark its deliverables `- [x]` below, s
 
 **Deliverables**
 
-- [ ] `eval/harness.py` — runner that:
+- [x] `eval/harness.py` — runner that:
   - Loads `eval/cases.yaml` (or `.json`) of research queries + expectations
   - Invokes supervisor (real or scripted provider for CI)
   - Records metrics below
-- [ ] `eval/report.md` generated (or printed Markdown table)
-- [ ] Metrics (minimum):
+- [x] `eval/report.md` generated (or printed Markdown table)
+- [x] Metrics (minimum):
 
   | Metric | Definition |
   |---|---|
@@ -332,7 +332,7 @@ Coding agents: when you complete a phase, mark its deliverables `- [x]` below, s
   | Token usage | Total tokens per case; multi-agent vs single-agent when baseline enabled |
   | Failure log | Classify failures (see below) |
 
-- [ ] Failure taxonomy (class discussion mapping):
+- [x] Failure taxonomy (class discussion mapping):
 
   | Class | Meaning in this system |
   |---|---|
@@ -340,7 +340,7 @@ Coding agents: when you complete a phase, mark its deliverables `- [x]` below, s
   | **Soft failure** | Wrong tool once, weak answer, or extra iteration — task still completes with caveats |
   | **Cascading soft failure** | Early soft error (bad query / empty retrieval) causes later wrong verify or confident unsupported answer |
 
-- [ ] `make eval` or `python -m eval.harness` documented in README
+- [x] `make eval` or `python -m eval.harness` documented in README
 
 **Acceptance**
 
