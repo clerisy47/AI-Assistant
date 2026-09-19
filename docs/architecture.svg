@@ -1,0 +1,149 @@
+<svg viewBox="0 0 1280 920" xmlns="http://www.w3.org/2000/svg" font-family="'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+    </marker>
+    <marker id="arrowBlue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1280" height="920" fill="#ffffff"/>
+
+  <!-- Title -->
+  <text x="640" y="38" text-anchor="middle" font-size="24" font-weight="700" fill="#0f172a">AI Assistant — RAG + Tool-Calling Architecture</text>
+  <text x="640" y="60" text-anchor="middle" font-size="13" fill="#64748b">Provider-agnostic LLM layer · agentic tool calling · retrieval-augmented generation · structured output</text>
+
+  <!-- Client -->
+  <rect x="500" y="84" width="280" height="52" rx="8" fill="#f8fafc" stroke="#334155" stroke-width="1.5"/>
+  <text x="640" y="106" text-anchor="middle" font-size="14" font-weight="600" fill="#0f172a">Client</text>
+  <text x="640" y="123" text-anchor="middle" font-size="11.5" fill="#475569">curl · Swagger UI (/docs) · any HTTP client</text>
+
+  <line x1="640" y1="136" x2="640" y2="164" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="655" y="154" font-size="10.5" fill="#64748b">HTTP</text>
+
+  <!-- Docker Compose boundary -->
+  <rect x="40" y="168" width="1200" height="700" rx="10" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6,5"/>
+  <text x="58" y="190" font-size="12.5" font-weight="700" fill="#64748b">DOCKER COMPOSE ENVIRONMENT</text>
+
+  <!-- FastAPI app outer box -->
+  <rect x="66" y="204" width="620" height="638" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="86" y="228" font-size="14" font-weight="700" fill="#1e3a8a">FastAPI APPLICATION  (app container, :8080)</text>
+
+  <!-- API routers -->
+  <rect x="86" y="242" width="580" height="56" rx="6" fill="#ffffff" stroke="#2563eb" stroke-width="1.2"/>
+  <text x="376" y="264" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1e3a8a">API Routers</text>
+  <text x="376" y="282" text-anchor="middle" font-size="11" fill="#334155">/chat · /rag/ingest · /rag/query · /structured/summarize · /health</text>
+
+  <line x1="376" y1="298" x2="376" y2="318" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+
+  <!-- Agent Orchestrator -->
+  <rect x="86" y="320" width="580" height="50" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1.2"/>
+  <text x="376" y="341" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1e3a8a">Agent Orchestrator</text>
+  <text x="376" y="357" text-anchor="middle" font-size="10.5" fill="#334155">multi-turn tool-calling loop · tool trace · max-iteration safety valve</text>
+
+  <line x1="230" y1="370" x2="230" y2="392" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+  <line x1="530" y1="370" x2="530" y2="392" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+
+  <!-- Tool Registry -->
+  <rect x="86" y="394" width="290" height="80" rx="6" fill="#ffffff" stroke="#2563eb" stroke-width="1.2"/>
+  <text x="231" y="415" text-anchor="middle" font-size="12" font-weight="600" fill="#1e3a8a">Tool Registry</text>
+  <text x="231" y="433" text-anchor="middle" font-size="10.5" fill="#334155">calculator</text>
+  <text x="231" y="448" text-anchor="middle" font-size="10.5" fill="#334155">get_current_datetime</text>
+  <text x="231" y="463" text-anchor="middle" font-size="10.5" fill="#334155">search_knowledge_base</text>
+
+  <!-- LLM Provider Interface -->
+  <rect x="386" y="394" width="280" height="80" rx="6" fill="#ffffff" stroke="#2563eb" stroke-width="1.2"/>
+  <text x="526" y="415" text-anchor="middle" font-size="12" font-weight="600" fill="#1e3a8a">LLM Provider Interface</text>
+  <text x="526" y="433" text-anchor="middle" font-size="10.5" fill="#334155">strict tool schemas</text>
+  <text x="526" y="448" text-anchor="middle" font-size="10.5" fill="#334155">native structured output</text>
+  <text x="526" y="463" text-anchor="middle" font-size="10.5" fill="#334155">(one interface, pluggable backend)</text>
+
+  <!-- arrow from knowledge_base tool down to RAG pipeline -->
+  <line x1="231" y1="474" x2="231" y2="496" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+
+  <!-- RAG Pipeline -->
+  <rect x="86" y="498" width="580" height="70" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1.2"/>
+  <text x="376" y="519" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1e3a8a">RAG Pipeline</text>
+  <text x="376" y="537" text-anchor="middle" font-size="10.5" fill="#334155">Ingestion  →  Chunker (sentence-aware, overlap)  →  Local Embedder  →  Retriever</text>
+  <text x="376" y="553" text-anchor="middle" font-size="10" fill="#64748b">retrieval exposed as a callable tool, not force-injected on every turn</text>
+
+  <!-- arrow RAG pipeline -> vector store (exits app box to the right) -->
+  <line x1="666" y1="533" x2="740" y2="533" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+
+  <!-- arrow LLM interface -> providers (exits app box to the right, downward path) -->
+  <path d="M666,434 h50 v190 h24" fill="none" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+
+  <!-- Prompt engineering note box -->
+  <rect x="86" y="580" width="580" height="96" rx="6" fill="#ffffff" stroke="#94a3b8" stroke-width="1.2"/>
+  <text x="106" y="601" font-size="12" font-weight="700" fill="#334155">Prompt Engineering</text>
+  <text x="106" y="619" font-size="10.5" fill="#475569">System prompt defines tool-use policy (when to search the KB, cite sources, admit "don't know").</text>
+  <text x="106" y="635" font-size="10.5" fill="#475569">temperature=0.7 / top_p=1.0 for open chat (overridable per request)</text>
+  <text x="106" y="651" font-size="10.5" fill="#475569">temperature=0.2 for RAG answers (favor faithfulness over variety)</text>
+  <text x="106" y="667" font-size="10.5" fill="#475569">temperature=0.0 for structured extraction (favor determinism)</text>
+
+  <!-- Ingestion sources -->
+  <rect x="86" y="694" width="280" height="60" rx="6" fill="#ffffff" stroke="#94a3b8" stroke-width="1.2"/>
+  <text x="226" y="717" text-anchor="middle" font-size="12" font-weight="600" fill="#334155">Document Sources</text>
+  <text x="226" y="734" text-anchor="middle" font-size="10.5" fill="#475569">sample_docs/ · uploaded .txt / .md / .pdf</text>
+  <line x1="226" y1="694" x2="226" y2="568" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Structured Output note -->
+  <rect x="386" y="694" width="280" height="60" rx="6" fill="#ffffff" stroke="#94a3b8" stroke-width="1.2"/>
+  <text x="526" y="717" text-anchor="middle" font-size="12" font-weight="600" fill="#334155">Structured Output</text>
+  <text x="526" y="734" text-anchor="middle" font-size="10.5" fill="#475569">JSON-schema constrained decoding → Pydantic validation</text>
+
+  <!-- Docker/App footnote -->
+  <text x="86" y="790" font-size="10.5" fill="#64748b">Container: python:3.11-slim · non-root user · HEALTHCHECK on /health · multi-stage build</text>
+  <text x="86" y="808" font-size="10.5" fill="#64748b">Startup: RAG stack init is timeout-bounded (45s) and thread-offloaded — a slow/unreachable</text>
+  <text x="86" y="824" font-size="10.5" fill="#64748b">embedding-model download or Qdrant connection degrades the service, it never crashes it.</text>
+
+  <!-- Qdrant box -->
+  <rect x="740" y="498" width="230" height="70" rx="6" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="855" y="519" text-anchor="middle" font-size="12.5" font-weight="700" fill="#14532d">Qdrant</text>
+  <text x="855" y="536" text-anchor="middle" font-size="10.5" fill="#166534">Vector Database (container)</text>
+  <text x="855" y="552" text-anchor="middle" font-size="10" fill="#166534">:6333 REST · cosine similarity</text>
+
+  <!-- vLLM box -->
+  <rect x="740" y="612" width="230" height="86" rx="6" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="855" y="634" text-anchor="middle" font-size="12.5" font-weight="700" fill="#14532d">vLLM (optional)</text>
+  <text x="855" y="651" text-anchor="middle" font-size="10.5" fill="#166534">OpenAI-compatible server</text>
+  <text x="855" y="666" text-anchor="middle" font-size="10.5" fill="#166534">Llama 3.1 / Mistral · GPU</text>
+  <text x="855" y="682" text-anchor="middle" font-size="10" fill="#166534">Compose profile "local-llm"</text>
+
+  <line x1="666" y1="624" x2="740" y2="655" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+
+  <!-- Cloud providers box (outside docker boundary) -->
+  <rect x="1006" y="498" width="234" height="200" rx="8" fill="#fff7ed" stroke="#ea580c" stroke-width="1.5"/>
+  <text x="1123" y="522" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7c2d12">Cloud LLM Providers</text>
+  <text x="1123" y="538" text-anchor="middle" font-size="10" fill="#9a3412">(external, not containerized)</text>
+
+  <rect x="1024" y="552" width="198" height="52" rx="6" fill="#ffffff" stroke="#ea580c" stroke-width="1"/>
+  <text x="1123" y="573" text-anchor="middle" font-size="11.5" font-weight="600" fill="#7c2d12">Anthropic Claude API</text>
+  <text x="1123" y="589" text-anchor="middle" font-size="10" fill="#9a3412">native tool use + JSON schema</text>
+
+  <rect x="1024" y="616" width="198" height="52" rx="6" fill="#ffffff" stroke="#ea580c" stroke-width="1"/>
+  <text x="1123" y="637" text-anchor="middle" font-size="11.5" font-weight="600" fill="#7c2d12">OpenAI API</text>
+  <text x="1123" y="653" text-anchor="middle" font-size="10" fill="#9a3412">function calling + JSON schema</text>
+
+  <path d="M666,434 h324 v144 h16" fill="none" stroke="#ea580c" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+
+  <!-- Legend -->
+  <rect x="740" y="750" width="500" height="118" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="758" y="772" font-size="12" font-weight="700" fill="#334155">Legend</text>
+
+  <rect x="758" y="784" width="18" height="14" rx="3" fill="#eff6ff" stroke="#2563eb"/>
+  <text x="784" y="795" font-size="11" fill="#334155">Application code (this repo)</text>
+
+  <rect x="758" y="806" width="18" height="14" rx="3" fill="#f0fdf4" stroke="#16a34a"/>
+  <text x="784" y="817" font-size="11" fill="#334155">Self-hosted container (Docker Compose)</text>
+
+  <rect x="758" y="828" width="18" height="14" rx="3" fill="#fff7ed" stroke="#ea580c"/>
+  <text x="784" y="839" font-size="11" fill="#334155">External managed API (cloud)</text>
+
+  <line x1="758" y1="854" x2="776" y2="854" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="784" y="858" font-size="11" fill="#334155">Request / data flow</text>
+
+  <!-- footer -->
+  <text x="640" y="900" text-anchor="middle" font-size="10.5" fill="#94a3b8">One LLMProvider interface is used both for the required cloud integration and the required local vLLM deployment — only the base URL and model name change.</text>
+</svg>

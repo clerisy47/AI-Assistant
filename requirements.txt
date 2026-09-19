@@ -1,0 +1,26 @@
+# Web framework
+fastapi==0.141.1
+uvicorn[standard]==0.52.3
+python-multipart==0.0.32        # required by FastAPI for UploadFile/form parsing
+
+# Settings / validation
+pydantic==2.13.4
+pydantic-settings==2.15.0
+python-dotenv==1.2.2            # .env file support used by pydantic-settings
+
+# LLM provider SDKs
+anthropic==0.122.0
+# openai>=3.0 switched its default HTTP transport to "HTTPX2" (see the SDK's
+# httpx2.md migration guide). That only affects code passing custom httpx
+# clients/transports -- this project only passes api_key/base_url strings,
+# so it's unaffected and safe to track latest.
+openai==3.1.0
+
+# RAG pipeline
+qdrant-client==1.19.0
+sentence-transformers==5.7.0    # pulls in torch; first install is the slow one
+pypdf==6.16.1
+
+# Reliability
+tenacity==9.1.4                 # retry/backoff for Qdrant startup connection
+httpx==0.28.1                   # used by FastAPI's TestClient and the SDKs above
