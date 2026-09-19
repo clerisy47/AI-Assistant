@@ -41,5 +41,6 @@ async def research(
         question,
         temperature=payload.temperature,
         top_p=payload.top_p,
+        baseline=payload.baseline,
     )
     return ResearchResponse(**result)

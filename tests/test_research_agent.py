@@ -42,8 +42,31 @@ def _tool_response(call_id: str, name: str, arguments: dict) -> LLMResponse:
     )
 
 
-def _text_response(text: str) -> LLMResponse:
-    return LLMResponse(content=text, tool_calls=[], stop_reason="end_turn")
+def _text_response(text: str, *, usage: dict | None = None) -> LLMResponse:
+    return LLMResponse(
+        content=text,
+        tool_calls=[],
+        stop_reason="end_turn",
+        usage=usage or {},
+    )
+
+
+def test_token_usage_from_provider_usage():
+    provider = ScriptedProvider(
+        [
+            _text_response(
+                "Draft answer.",
+                usage={"prompt_tokens": 100, "completion_tokens": 20, "total_tokens": 120},
+            )
+        ]
+    )
+    agent = _agent_with_fake_kb(provider)
+    result = asyncio.run(agent.run("Simple question?"))
+    usage = result["token_usage"]
+    assert usage.prompt_tokens == 100
+    assert usage.completion_tokens == 20
+    assert usage.total_tokens == 120
+    assert usage.estimated is False
 
 
 def _agent_with_fake_kb(
@@ -126,7 +149,10 @@ def test_re_search_then_draft():
     assert result["stop_reason"] == "final"
     assert result["iterations"] > 1
     assert "vLLM" in result["draft_answer"]
-    assert result["token_usage"] is None
+    usage = result["token_usage"]
+    assert usage is not None
+    assert usage.total_tokens > 0
+    assert usage.estimated is True  # scripted provider has empty usage
     kb_calls = [t for t in result["tool_trace"] if t["tool"] == "search_knowledge_base"]
     assert len(kb_calls) >= 2
     assert kb_calls[0]["arguments"]["query"] != kb_calls[1]["arguments"]["query"]

@@ -1,6 +1,6 @@
 # Specs — Verified Research Agent + MLOps
 
-**Status:** In progress — Phases 0–4 complete; next is Phase 5 (Token / cost accounting)  
+**Status:** In progress — Phases 0–5 complete; next is Phase 6 (Eval harness)  
 **Base:** Existing W15 assistant (`POST /chat` tool loop, RAG-as-tool, FastAPI + Qdrant)  
 **Tracks covered:**
 - **Track B (Agentic AI):** Cross-source verified research with a multi-agent loop, context engineering, and a custom eval harness (Phases 0–9).
@@ -145,7 +145,7 @@ Each phase has: goal, deliverables, acceptance criteria, and suggested file touc
 | 2 | Skills progressive disclosure | DONE | `skills/verified_research/SKILL.md`, `app/tools/skill_tool.py`, `tests/test_skill_tool.py` |
 | 3 | Research agent loop | DONE | `app/agent/research_agent.py`, `app/tools/research_tools.py`, `tests/test_research_agent.py` |
 | 4 | Verifier + supervisor + API | DONE | `app/agent/verifier_agent.py`, `app/agent/supervisor.py`, `app/api/research.py`, `tests/test_supervisor.py` |
-| 5 | Token / cost accounting | NOT STARTED | |
+| 5 | Token / cost accounting | DONE | `app/llm/usage.py`, providers + `StructuredLLMResponse`, supervisor rollup, `baseline=single`, `tests/test_usage.py` |
 | 6 | Eval harness | NOT STARTED | |
 | 7 | Failure injection | NOT STARTED | |
 | 8 | Track B docs + architecture | NOT STARTED | |
@@ -296,9 +296,9 @@ Coding agents: when you complete a phase, mark its deliverables `- [x]` below, s
 
 **Deliverables**
 
-- [ ] Extend LLM provider responses (or wrap `generate`) to expose `prompt_tokens`, `completion_tokens`, `total_tokens` when the API returns them; estimate if missing (document estimation method)
-- [ ] Per-query totals in API response and eval harness
-- [ ] Optional: `POST /research?baseline=single` that runs a single-agent variant for comparison (same tools, no separate verifier) — used by eval only
+- [x] Extend LLM provider responses (or wrap `generate`) to expose `prompt_tokens`, `completion_tokens`, `total_tokens` when the API returns them; estimate if missing (document estimation method)
+- [x] Per-query totals in API response and eval harness
+- [x] Optional: `POST /research?baseline=single` that runs a single-agent variant for comparison (same tools, no separate verifier) — used by eval only
 
 **Acceptance**
 
@@ -306,6 +306,8 @@ Coding agents: when you complete a phase, mark its deliverables `- [x]` below, s
 - Multi-agent vs single-agent token delta visible when baseline is run.
 
 **Suggested paths:** `app/llm/base.py`, providers, `app/agent/supervisor.py`
+
+**Notes (implemented):** Estimation uses chars÷4 when the API omits usage (`app/llm/usage.py`). Baseline is request body `baseline: "single"` (not query string). `generate_structured` returns `StructuredLLMResponse` with usage. Eval Tokens column lands with the Phase 6 harness; `/research` already returns `token_usage`.
 
 ---
 

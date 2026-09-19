@@ -1,4 +1,4 @@
-"""Scripted tests for ResearchSupervisor multi-agent loop (Phase 4)."""
+"""Scripted tests for ResearchSupervisor multi-agent loop (Phase 4–5)."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from typing import Any
 from unittest.mock import patch
 
 from app.agent.supervisor import ResearchSupervisor
-from app.llm.base import LLMProvider, LLMResponse, ToolCall
+from app.llm.base import LLMProvider, LLMResponse, StructuredLLMResponse, ToolCall
 from app.tools.knowledge_base_tool import KNOWLEDGE_BASE_DEFINITION
 from app.tools.research_tools import build_research_registry
 
@@ -19,9 +19,16 @@ class ScriptedMultiProvider(LLMProvider):
         self,
         generate_responses: list[LLMResponse],
         structured_payloads: list[dict[str, Any]],
+        *,
+        structured_usage: dict[str, int] | None = None,
     ):
         self._generate = list(generate_responses)
         self._structured = list(structured_payloads)
+        self._structured_usage = structured_usage or {
+            "prompt_tokens": 40,
+            "completion_tokens": 10,
+            "total_tokens": 50,
+        }
         self.generate_calls: list[dict] = []
         self.structured_calls: list[dict] = []
 
@@ -43,11 +50,22 @@ class ScriptedMultiProvider(LLMProvider):
         )
         if not self._structured:
             raise AssertionError("Unexpected generate_structured() call — queue empty")
-        return dict(self._structured.pop(0))
+        return StructuredLLMResponse(
+            data=dict(self._structured.pop(0)),
+            usage=dict(self._structured_usage),
+        )
 
 
 def _tc(call_id: str, name: str, arguments: dict) -> ToolCall:
     return ToolCall(id=call_id, name=name, arguments=arguments)
+
+
+def _usage(prompt: int, completion: int) -> dict[str, int]:
+    return {
+        "prompt_tokens": prompt,
+        "completion_tokens": completion,
+        "total_tokens": prompt + completion,
+    }
 
 
 def _tool_response(call_id: str, name: str, arguments: dict) -> LLMResponse:
@@ -55,11 +73,17 @@ def _tool_response(call_id: str, name: str, arguments: dict) -> LLMResponse:
         content=None,
         tool_calls=[_tc(call_id, name, arguments)],
         stop_reason="tool_use",
+        usage=_usage(30, 5),
     )
 
 
 def _text_response(text: str) -> LLMResponse:
-    return LLMResponse(content=text, tool_calls=[], stop_reason="end_turn")
+    return LLMResponse(
+        content=text,
+        tool_calls=[],
+        stop_reason="end_turn",
+        usage=_usage(25, 15),
+    )
 
 
 def _insufficient() -> dict:
@@ -182,6 +206,11 @@ def test_verify_fail_then_re_research_then_pass():
     assert len(provider.structured_calls) == 2
     assert any(e.get("agent") == "research" for e in result["tool_trace"])
     assert any(e.get("agent") == "verifier" for e in result["tool_trace"])
+    usage = result["token_usage"]
+    assert usage["total_tokens"] > 0
+    assert usage["by_agent"]["research"] > 0
+    assert usage["by_agent"]["verifier"] > 0
+    assert usage["by_agent"]["research"] + usage["by_agent"]["verifier"] == usage["total_tokens"]
     # Second research pass must include verifier feedback in the user message.
     second_pass_user = provider.generate_calls[3]["messages"][0].content or ""
     assert "Verifier feedback" in second_pass_user or "Missing OpenAI-compatible" in second_pass_user
@@ -239,3 +268,42 @@ def test_max_tool_calls_stop_reason():
     result = _run(supervisor)
     assert result["stop_reason"] == "max_tool_calls"
     assert any(e["tool"] == "search_knowledge_base" for e in result["tool_trace"])
+
+
+def test_single_baseline_skips_verifier_and_reports_tokens():
+    provider = ScriptedMultiProvider(
+        generate_responses=[
+            _tool_response("1", "search_knowledge_base", {"query": "local", "top_k": 4}),
+            _tool_response(
+                "2",
+                "update_evidence_notes",
+                {
+                    "source": "about.md",
+                    "excerpt": "vLLM supported.",
+                    "query_used": "local",
+                    "open_gaps": [],
+                    "sufficient_hypothesis": True,
+                },
+            ),
+            _text_response("Local LLMs via vLLM."),
+        ],
+        structured_payloads=[],
+    )
+    supervisor = _supervisor_with_fake_kb(provider)
+    try:
+        result = asyncio.run(
+            supervisor.run("What about local LLMs?", temperature=0.0, baseline="single")
+        )
+    finally:
+        patcher = getattr(supervisor, "_test_patcher", None)
+        if patcher is not None:
+            patcher.stop()
+
+    assert result["stop_reason"] == "verified"
+    assert result["verification"] is None
+    assert provider.structured_calls == []
+    assert "vLLM" in result["answer"]
+    usage = result["token_usage"]
+    assert usage["total_tokens"] > 0
+    assert usage["by_agent"]["research"] == usage["total_tokens"]
+    assert "verifier" not in usage["by_agent"]

@@ -1,4 +1,4 @@
-"""Request/response schemas for POST /research (Phase 4)."""
+"""Request/response schemas for POST /research (Phase 4–5)."""
 
 from __future__ import annotations
 
@@ -23,6 +23,13 @@ class ResearchRequest(BaseModel):
         ge=1,
         description="Override supervisor research↔verify round budget.",
     )
+    baseline: Literal["multi", "single"] = Field(
+        default="multi",
+        description=(
+            "multi = Research + Verifier (default). "
+            "single = research tools only (eval token comparison)."
+        ),
+    )
 
 
 class VerificationPayload(BaseModel):
@@ -38,6 +45,15 @@ class ResearchToolTraceEntry(BaseModel):
     arguments: dict[str, Any]
     result: str
     is_error: bool
+    token_usage: Optional[dict[str, Any]] = None
+
+
+class TokenUsagePayload(BaseModel):
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
+    by_agent: Optional[dict[str, int]] = None
+    estimated: Optional[bool] = None
 
 
 class ResearchResponse(BaseModel):
@@ -53,4 +69,4 @@ class ResearchResponse(BaseModel):
         "max_tool_calls",
         "tool_failure",
     ]
-    token_usage: Optional[dict[str, Any]] = None
+    token_usage: Optional[TokenUsagePayload] = None

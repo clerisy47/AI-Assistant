@@ -32,9 +32,9 @@ async def summarize(payload: SummarizeRequest) -> DocumentSummary:
     messages = [LLMMessage(role="user", content=f"Summarize the following text:\n\n{payload.text}")]
 
     try:
-        data = await provider.generate_structured(
+        structured = await provider.generate_structured(
             messages, schema=schema, schema_name="document_summary", temperature=STRUCTURED_TEMPERATURE
         )
-        return DocumentSummary.model_validate(data)
+        return DocumentSummary.model_validate(structured.data)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=502, detail=f"Failed to generate structured output: {exc}") from exc

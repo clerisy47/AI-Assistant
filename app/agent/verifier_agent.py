@@ -2,6 +2,7 @@
 
 Receives question + draft + structured notes only (no exploratory tool dump).
 Uses generate_structured for a flat VerificationResult; no verifier tool loop.
+Phase 5 returns token usage alongside the verification result.
 """
 
 from __future__ import annotations
@@ -14,6 +15,7 @@ from pydantic import BaseModel, Field
 
 from app.agent.evidence_notes import EvidenceNotes, to_verifier_context
 from app.llm.base import LLMMessage, LLMProvider
+from app.llm.usage import TokenUsage, estimate_structured_usage, normalize_usage
 
 logger = logging.getLogger(__name__)
 
@@ -73,20 +75,29 @@ class VerifierAgent:
         draft_answer: str,
         evidence_notes: EvidenceNotes,
         temperature: float = 0.0,
-    ) -> tuple[VerificationResult, dict]:
-        """Return (result, tool_trace_entry). Context is draft + notes only."""
+    ) -> tuple[VerificationResult, dict, TokenUsage]:
+        """Return (result, tool_trace_entry, token_usage). Context is draft + notes only."""
         user_content = self.build_user_content(question, draft_answer, evidence_notes)
         messages = [LLMMessage(role="user", content=user_content)]
         schema = VerificationResult.model_json_schema()
+        usage = TokenUsage()
 
         try:
-            data = await self._provider.generate_structured(
+            structured = await self._provider.generate_structured(
                 messages,
                 schema=schema,
                 schema_name="verification_result",
                 system=VERIFIER_SYSTEM_PROMPT,
                 temperature=temperature,
             )
+            data = structured.data
+            usage = normalize_usage(structured.usage)
+            if usage.total_tokens <= 0 and usage.prompt_tokens <= 0 and usage.completion_tokens <= 0:
+                usage = estimate_structured_usage(
+                    system=VERIFIER_SYSTEM_PROMPT,
+                    messages=messages,
+                    data=data,
+                )
             result = self._normalize(VerificationResult.model_validate(data))
             is_error = False
             result_text = result.model_dump_json()
@@ -111,5 +122,6 @@ class VerifierAgent:
             },
             "result": result_text,
             "is_error": is_error,
+            "token_usage": usage.to_dict(),
         }
-        return result, trace_entry
+        return result, trace_entry, usage

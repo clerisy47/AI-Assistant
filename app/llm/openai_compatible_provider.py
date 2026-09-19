@@ -27,7 +27,16 @@ from typing import Any, Optional
 
 from openai import AsyncOpenAI
 
-from app.llm.base import LLMMessage, LLMProvider, LLMResponse, ToolCall, ToolDefinition, strict_json_schema
+from app.llm.base import (
+    LLMMessage,
+    LLMProvider,
+    LLMResponse,
+    StructuredLLMResponse,
+    ToolCall,
+    ToolDefinition,
+    strict_json_schema,
+)
+from app.llm.usage import normalize_usage
 
 logger = logging.getLogger(__name__)
 
@@ -127,12 +136,15 @@ class OpenAICompatibleProvider(LLMProvider):
                 arguments = {}
             tool_calls.append(ToolCall(id=tc.id, name=tc.function.name, arguments=arguments))
 
-        usage = {}
+        usage: dict[str, int] = {}
         if response.usage:
-            usage = {
-                "input_tokens": response.usage.prompt_tokens,
-                "output_tokens": response.usage.completion_tokens,
-            }
+            usage = normalize_usage(
+                {
+                    "prompt_tokens": response.usage.prompt_tokens,
+                    "completion_tokens": response.usage.completion_tokens,
+                    "total_tokens": getattr(response.usage, "total_tokens", None),
+                }
+            ).to_dict()
 
         return LLMResponse(
             content=message.content,
@@ -150,7 +162,7 @@ class OpenAICompatibleProvider(LLMProvider):
         *,
         system: Optional[str] = None,
         temperature: float = 0.0,
-    ) -> dict[str, Any]:
+    ) -> StructuredLLMResponse:
         response = await self._client.chat.completions.create(
             model=self._model,
             temperature=temperature,
@@ -163,6 +175,16 @@ class OpenAICompatibleProvider(LLMProvider):
         )
         content = response.choices[0].message.content or ""
         try:
-            return json.loads(content)
+            data = json.loads(content)
         except json.JSONDecodeError as exc:
             raise ValueError(f"Model did not return valid JSON despite structured output mode: {content!r}") from exc
+        usage: dict[str, int] = {}
+        if response.usage:
+            usage = normalize_usage(
+                {
+                    "prompt_tokens": response.usage.prompt_tokens,
+                    "completion_tokens": response.usage.completion_tokens,
+                    "total_tokens": getattr(response.usage, "total_tokens", None),
+                }
+            ).to_dict()
+        return StructuredLLMResponse(data=data, usage=usage, raw=response)

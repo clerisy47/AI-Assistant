@@ -23,7 +23,16 @@ from typing import Any, Optional
 
 from anthropic import AsyncAnthropic
 
-from app.llm.base import LLMMessage, LLMProvider, LLMResponse, ToolCall, ToolDefinition, strict_json_schema
+from app.llm.base import (
+    LLMMessage,
+    LLMProvider,
+    LLMResponse,
+    StructuredLLMResponse,
+    ToolCall,
+    ToolDefinition,
+    strict_json_schema,
+)
+from app.llm.usage import normalize_usage
 
 logger = logging.getLogger(__name__)
 
@@ -117,14 +126,17 @@ class AnthropicProvider(LLMProvider):
             elif block.type == "tool_use":
                 tool_calls.append(ToolCall(id=block.id, name=block.name, arguments=block.input))
 
+        usage = normalize_usage(
+            {
+                "input_tokens": response.usage.input_tokens,
+                "output_tokens": response.usage.output_tokens,
+            }
+        ).to_dict()
         return LLMResponse(
             content="".join(text_parts) or None,
             tool_calls=tool_calls,
             stop_reason=response.stop_reason or "end_turn",
-            usage={
-                "input_tokens": response.usage.input_tokens,
-                "output_tokens": response.usage.output_tokens,
-            },
+            usage=usage,
             raw=response,
         )
 
@@ -136,7 +148,7 @@ class AnthropicProvider(LLMProvider):
         *,
         system: Optional[str] = None,
         temperature: float = 0.0,
-    ) -> dict[str, Any]:
+    ) -> StructuredLLMResponse:
         kwargs: dict[str, Any] = {
             "model": self._model,
             "max_tokens": 4096,
@@ -150,6 +162,13 @@ class AnthropicProvider(LLMProvider):
         response = await self._client.messages.create(**kwargs)
         text = "".join(block.text for block in response.content if block.type == "text")
         try:
-            return json.loads(text)
+            data = json.loads(text)
         except json.JSONDecodeError as exc:
             raise ValueError(f"Model did not return valid JSON despite structured output mode: {text!r}") from exc
+        usage = normalize_usage(
+            {
+                "input_tokens": response.usage.input_tokens,
+                "output_tokens": response.usage.output_tokens,
+            }
+        ).to_dict()
+        return StructuredLLMResponse(data=data, usage=usage, raw=response)

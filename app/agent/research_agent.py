@@ -3,6 +3,7 @@
 Iterates: search → evaluate sufficiency via evidence notes → search again /
 clarify / draft. Hard-stopped by max_iterations and max_tool_calls.
 Phase 4 supervisor calls ResearchAgent.run with remaining budgets / revise hints.
+Phase 5 aggregates token usage across generate() turns.
 """
 
 from __future__ import annotations
@@ -14,6 +15,7 @@ from app.agent.context_budget import compact_messages
 from app.agent.evidence_notes import EvidenceNotes
 from app.config import settings
 from app.llm.base import LLMMessage, LLMProvider
+from app.llm.usage import TokenUsage, usage_from_generate
 from app.rag.retriever import Retriever
 from app.tools.registry import ToolRegistry
 from app.tools.research_tools import ClarificationState, build_research_registry
@@ -99,6 +101,7 @@ class ResearchAgent:
         tool_trace: list[dict],
         iterations: int,
         stop_reason: str,
+        token_usage: TokenUsage,
     ) -> dict:
         return {
             "draft_answer": draft_answer,
@@ -106,7 +109,7 @@ class ResearchAgent:
             "tool_trace": tool_trace,
             "iterations": iterations,
             "stop_reason": stop_reason,
-            "token_usage": None,
+            "token_usage": token_usage,
         }
 
     def _partial_from_notes(self, prefix: str) -> str:
@@ -151,6 +154,7 @@ class ResearchAgent:
         system_prompt = self._system_prompt()
         tokens = max_tokens if max_tokens is not None else settings.MAX_TOKENS
         tool_calls_used = 0
+        usage = TokenUsage()
 
         for iteration in range(self._max_iterations):
             response = await self._provider.generate(
@@ -162,6 +166,9 @@ class ResearchAgent:
                 top_p=top_p,
                 max_tokens=tokens,
             )
+            usage = usage.add(
+                usage_from_generate(response, system=system_prompt, messages=messages)
+            )
 
             if not response.tool_calls:
                 return self._result(
@@ -169,6 +176,7 @@ class ResearchAgent:
                     tool_trace=trace,
                     iterations=iteration + 1,
                     stop_reason="final",
+                    token_usage=usage,
                 )
 
             messages.append(
@@ -212,6 +220,7 @@ class ResearchAgent:
                         tool_trace=trace,
                         iterations=iteration + 1,
                         stop_reason="clarification",
+                        token_usage=usage,
                     )
 
             if hit_tool_budget:
@@ -223,6 +232,7 @@ class ResearchAgent:
                     tool_trace=trace,
                     iterations=iteration + 1,
                     stop_reason="max_tool_calls",
+                    token_usage=usage,
                 )
 
             # Cap context: once notes exist, compact older raw tool payloads.
@@ -238,4 +248,5 @@ class ResearchAgent:
             tool_trace=trace,
             iterations=self._max_iterations,
             stop_reason="max_iterations",
+            token_usage=usage,
         )

@@ -69,7 +69,16 @@ class LLMResponse:
     content: Optional[str]
     tool_calls: list[ToolCall]
     stop_reason: str
-    usage: dict[str, int] = field(default_factory=dict)
+    usage: dict[str, Any] = field(default_factory=dict)
+    raw: Any = None
+
+
+@dataclass
+class StructuredLLMResponse:
+    """Result of ``generate_structured`` — parsed data plus token usage."""
+
+    data: dict[str, Any]
+    usage: dict[str, Any] = field(default_factory=dict)
     raw: Any = None
 
 
@@ -117,6 +126,6 @@ class LLMProvider(ABC):
         *,
         system: Optional[str] = None,
         temperature: float = 0.0,
-    ) -> dict[str, Any]:
-        """Return a dict guaranteed to validate against `schema`."""
+    ) -> StructuredLLMResponse:
+        """Return schema-valid JSON plus usage (estimated when the API omits it)."""
         raise NotImplementedError
