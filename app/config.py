@@ -42,6 +42,13 @@ class Settings(BaseSettings):
     CHUNK_OVERLAP: int = 120
     TOP_K: int = 4
 
+    # --- Verified research / context engineering ------------------------------------
+    # Caps keep multi-search dumps from saturating the research agent context;
+    # SKILLS_DIR is the progressive-disclosure root (used from Phase 2).
+    EVIDENCE_EXCERPT_MAX_CHARS: int = 500
+    TOOL_RESULT_MAX_CHARS: int = 2000
+    SKILLS_DIR: str = "skills"
+
     # --- App ------------------------------------------------------------------------
     APP_HOST: str = "0.0.0.0"
     APP_PORT: int = 8080
