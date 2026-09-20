@@ -1,6 +1,6 @@
 # Specs — Verified Research Agent + MLOps
 
-**Status:** In progress — Phases 0–7 complete; next is Phase 8 (Track B docs + architecture)  
+**Status:** In progress — Phases 0–9 complete; next is Phase 10 (Environment / uv)  
 **Base:** Existing W15 assistant (`POST /chat` tool loop, RAG-as-tool, FastAPI + Qdrant)  
 **Tracks covered:**
 - **Track B (Agentic AI):** Cross-source verified research with a multi-agent loop, context engineering, and a custom eval harness (Phases 0–9).
@@ -148,8 +148,8 @@ Each phase has: goal, deliverables, acceptance criteria, and suggested file touc
 | 5 | Token / cost accounting | DONE | `app/llm/usage.py`, providers + `StructuredLLMResponse`, supervisor rollup, `baseline=single`, `tests/test_usage.py` |
 | 6 | Eval harness | DONE | `eval/harness.py`, `cases.yaml`, `report.md`, `tests/test_eval_scoring.py` |
 | 7 | Failure injection | DONE | `INJECT_FAILURE` in config, `knowledge_base_tool.py` inject hook, supervisor `tool_failure`, `eval` case `kb_unavailable_recognized`, `tests/test_failure_injection.py` |
-| 8 | Track B docs + architecture | NOT STARTED | |
-| 9 | Polish / Track B checklist | NOT STARTED | |
+| 8 | Track B docs + architecture | DONE | `README.md` Track B a–c + additional; `docs/architecture.md` / `.svg` (supervisor + research↔verifier; MLOps stubbed) |
+| 9 | Polish / Track B checklist | DONE | `sample_docs/{about_this_assistant,tools_and_usage,rag_pipeline}.md`; README `/research` demo; `eval/report.md`; §8 Track B checked |
 | 10 | Environment (`uv`) | NOT STARTED | |
 | 11 | MLflow experiments | NOT STARTED | |
 | 12 | Evidently regression | NOT STARTED | |
@@ -377,7 +377,7 @@ Coding agents: when you complete a phase, mark its deliverables `- [x]` below, s
 
 **Deliverables**
 
-- [ ] README sections (implementation-specific, not course lecture recap):
+- [x] README sections (implementation-specific, not course lecture recap):
 
   - **a. Context Engineering Technique** — which, where in loop, what problem
   - **b. Agentic Pattern** — multi-agent vs single; why (isolation / specialization / self-verification paradox)
@@ -385,13 +385,13 @@ Coding agents: when you complete a phase, mark its deliverables `- [x]` below, s
   - **Additional requirements** — Skill vs Agent; token accounting; failure injection; tool vs agent boundary
   - Keep Track B a–c + additional ≈ **one page**
 
-- [ ] Update `docs/architecture.md` / `docs/architecture.svg` (and mermaid source if present):
+- [x] Update `docs/architecture.md` / `docs/architecture.svg` (and mermaid source if present):
   - Show supervisor + research ↔ verifier loop
   - Show skill load + evidence notes
   - Keep existing classic `/chat` and `/rag/query` paths visible
   - (Stub MLOps boxes if Phase 11+ not done yet; finalize in Phase 14)
 
-- [ ] Link specs → README → eval report for graders
+- [x] Link specs → README → eval report for graders
 
 **Acceptance**
 
@@ -406,11 +406,11 @@ Coding agents: when you complete a phase, mark its deliverables `- [x]` below, s
 
 **Deliverables**
 
-- [ ] Existing unit tests still pass (`make test`)
-- [ ] New tests for research/verifier/supervisor/harness helpers
-- [ ] Sample docs sufficient for demo queries (extend `sample_docs/` if needed)
-- [ ] `.env.example` updated for any new settings (`MAX_RESEARCH_ITERATIONS`, `INJECT_FAILURE`, etc.)
-- [ ] Submission checklist completed (below)
+- [x] Existing unit tests still pass (`make test`)
+- [x] New tests for research/verifier/supervisor/harness helpers
+- [x] Sample docs sufficient for demo queries (extend `sample_docs/` if needed)
+- [x] `.env.example` updated for any new settings (`MAX_RESEARCH_ITERATIONS`, `INJECT_FAILURE`, etc.)
+- [x] Submission checklist completed (below)
 
 **Acceptance**
 
@@ -719,18 +719,18 @@ For each `prompt_vN` (+ config):
 
 ### Track B — Agentic
 
-- [ ] Feature sentence (why not fixed pipeline) in README
-- [ ] Skill vs Agent one-liner in README
-- [ ] Context engineering documented with *this* system’s problem/solution
-- [ ] Multi-agent (or justified single-agent) + framework language
-- [ ] Loop runs &gt;1 iteration; model decides next action; hard stop exists
-- [ ] Eval harness from scratch with all four metric groups + failure taxonomy
-- [ ] Token totals per query; multi-agent vs single-agent comparison if multi-agent
-- [ ] Failure injection documented with observed behavior
-- [ ] Tool vs agent boundary paragraph (Qdrant / LLM as tools)
-- [ ] Write-up ≈ one page for Track B required sections
-- [ ] Architecture diagram shows agentic loop (+ coordination if multi-agent)
-- [ ] `make test` and `make eval` (or documented commands) succeed
+- [x] Feature sentence (why not fixed pipeline) in README
+- [x] Skill vs Agent one-liner in README
+- [x] Context engineering documented with *this* system’s problem/solution
+- [x] Multi-agent (or justified single-agent) + framework language
+- [x] Loop runs &gt;1 iteration; model decides next action; hard stop exists
+- [x] Eval harness from scratch with all four metric groups + failure taxonomy
+- [x] Token totals per query; multi-agent vs single-agent comparison if multi-agent
+- [x] Failure injection documented with observed behavior
+- [x] Tool vs agent boundary paragraph (Qdrant / LLM as tools)
+- [x] Write-up ≈ one page for Track B required sections
+- [x] Architecture diagram shows agentic loop (+ coordination if multi-agent)
+- [x] `make test` and `make eval` (or documented commands) succeed
 
 ### Track A — MLOps
 

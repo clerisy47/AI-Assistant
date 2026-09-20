@@ -13,6 +13,7 @@ sentence-transformers, and packaged to run with a single `docker compose up`.
 | Prompt engineering | System prompt in `app/agent/orchestrator.py`; temperature/top_p tuned per endpoint, see [Prompt engineering](#prompt-engineering) |
 | Structured output | Native JSON-schema constrained decoding, not a prompting trick — `POST /structured/summarize` |
 | Tool calling | Multi-turn agent loop, 3 tools, one of which is RAG retrieval itself — `app/agent/orchestrator.py` |
+| Verified research (Track B) | Multi-agent supervisor loop (`POST /research`): Research + Verifier, Skills progressive disclosure, custom eval harness — see [Verified research (Track B)](#verified-research-track-b) |
 | RAG pipeline | Chunking → local embeddings → Qdrant, exposed both as a callable tool and a classic retrieve-then-generate endpoint — `app/rag/` |
 | Local deployment (vLLM) | `docker compose --profile local-llm up`, serves Llama 3.1 8B Instruct by default |
 | Containerization | Multi-stage `Dockerfile` + `docker-compose.yml` |
@@ -32,20 +33,42 @@ flowchart TB
 
         subgraph FastAPIApp["FastAPI application (app container, :8080)"]
             direction TB
-            Routers["API Routers<br/>/chat · /rag/ingest · /rag/query · /structured/summarize · /health"]
-            Orchestrator["Agent Orchestrator<br/>multi-turn tool-calling loop + tool trace"]
-            Tools["Tool Registry<br/>calculator · get_current_datetime · search_knowledge_base"]
-            LLMIface["LLM Provider Interface<br/>strict tool schemas · native structured output"]
-            RAG["RAG Pipeline<br/>Ingestion → Chunker → Local Embedder → Retriever"]
+            Routers["API Routers<br/>/chat · /research · /rag/* · /structured/summarize · /health"]
+
+            subgraph Classic["Classic path (unchanged)"]
+                Orchestrator["Agent Orchestrator<br/>multi-turn tool loop + tool trace"]
+                ChatTools["Tool Registry<br/>calculator · datetime · search_knowledge_base"]
+            end
+
+            subgraph ResearchPath["Verified research path"]
+                Supervisor["Supervisor<br/>budgets · stop reasons · token rollup"]
+                Research["Research Agent<br/>search · load_skill · evidence notes · clarify"]
+                Verifier["Verifier Agent<br/>draft + EvidenceNotes only"]
+                Skill["skills/verified_research<br/>progressive disclosure"]
+                Notes["EvidenceNotes<br/>external structured notes"]
+            end
+
+            LLMIface["LLM Provider Interface<br/>strict tools · structured output · usage"]
+            RAG["RAG Pipeline<br/>Ingest → Chunk → Embed → Retrieve"]
 
             Routers --> Orchestrator
-            Orchestrator --> Tools
+            Routers --> Supervisor
+            Orchestrator --> ChatTools
             Orchestrator --> LLMIface
-            Tools --> RAG
+            ChatTools --> RAG
+
+            Supervisor --> Research
+            Supervisor --> Verifier
+            Research --> Skill
+            Research --> Notes
+            Verifier --> Notes
+            Research --> LLMIface
+            Verifier --> LLMIface
+            Research --> RAG
         end
 
         Qdrant[("Qdrant<br/>Vector Database")]
-        VLLM["vLLM (optional, profile local-llm)<br/>OpenAI-compatible server · Llama 3.1 / Mistral · GPU"]
+        VLLM["vLLM (optional, profile local-llm)<br/>OpenAI-compatible · Llama 3.1 / Mistral"]
 
         RAG --> Qdrant
         LLMIface --> VLLM
@@ -54,23 +77,34 @@ flowchart TB
     Anthropic["Anthropic Claude API<br/>(external, cloud)"]
     OpenAI["OpenAI API<br/>(external, cloud)"]
 
+    subgraph MLOpsStub["MLOps tracking — planned Phase 11–13"]
+        MLflowStub["MLflow params / metrics / step traces"]
+        EvidentlyStub["Evidently golden regression"]
+        AirflowStub["Airflow scheduled eval"]
+    end
+
     Client -- HTTP --> Routers
     LLMIface -. cloud mode .-> Anthropic
     LLMIface -. cloud mode .-> OpenAI
+    Supervisor -. future .-> MLOpsStub
 
     classDef app fill:#eff6ff,stroke:#2563eb,color:#1e3a8a;
     classDef container fill:#f0fdf4,stroke:#16a34a,color:#14532d;
     classDef cloud fill:#fff7ed,stroke:#ea580c,color:#7c2d12;
     classDef client fill:#f8fafc,stroke:#334155,color:#0f172a;
+    classDef research fill:#f5f3ff,stroke:#7c3aed,color:#4c1d95;
+    classDef stub fill:#f8fafc,stroke:#94a3b8,color:#64748b,stroke-dasharray: 5 5;
 
     class Client client;
-    class Routers,Orchestrator,Tools,LLMIface,RAG app;
+    class Routers,Orchestrator,ChatTools,LLMIface,RAG app;
+    class Supervisor,Research,Verifier,Skill,Notes research;
     class Qdrant,VLLM container;
     class Anthropic,OpenAI cloud;
+    class MLflowStub,EvidentlyStub,AirflowStub stub;
 ```
 
 A standalone image version is at [`docs/architecture.svg`](docs/architecture.svg)
-(source: [`docs/architecture.mmd`](docs/architecture.mmd)).
+(Mermaid source: [`docs/architecture.md`](docs/architecture.md)). Build plan: [`docs/SPECS.md`](docs/SPECS.md).
 
 **The design decision that ties two requirements together:**
 `OpenAICompatibleProvider` (`app/llm/openai_compatible_provider.py`) is used
@@ -91,23 +125,32 @@ app/
 │   ├── openai_compatible_provider.py  # OpenAI cloud AND local vLLM (same class)
 │   └── factory.py              # LLM_PROVIDER -> concrete provider
 ├── agent/
-│   └── orchestrator.py         # The tool-calling loop
+│   ├── orchestrator.py         # Classic /chat tool-calling loop
+│   ├── supervisor.py           # /research: research ↔ verify budgets + stop reasons
+│   ├── research_agent.py       # Multi-iteration research with tools + evidence notes
+│   ├── verifier_agent.py       # Separate-context claim check against notes
+│   ├── evidence_notes.py       # Structured EvidenceNotes models
+│   └── context_budget.py       # Tool-result capping / message compaction
 ├── tools/
 │   ├── registry.py             # Tool registration/dispatch
 │   ├── builtin_tools.py        # calculator (safe, no eval()), get_current_datetime
-│   └── knowledge_base_tool.py  # search_knowledge_base -- RAG exposed as a tool
+│   ├── knowledge_base_tool.py  # search_knowledge_base -- RAG as a tool (+ failure inject)
+│   ├── skill_tool.py           # load_skill progressive disclosure
+│   └── research_tools.py       # update_evidence_notes, ask_clarification
 ├── rag/
 │   ├── chunking.py             # Sentence-aware recursive chunking with overlap
 │   ├── embeddings.py           # Local sentence-transformers model
 │   ├── vector_store.py         # Qdrant wrapper (VectorStore interface)
 │   ├── ingestion.py            # Read -> chunk -> embed -> upsert
 │   └── retriever.py            # Query-time retrieval
-├── schemas/                    # Pydantic request/response models
-└── api/                        # Route handlers: chat, rag, structured, health
+├── schemas/                    # Pydantic request/response models (incl. research)
+└── api/                        # chat, research, rag, structured, health
+skills/verified_research/       # Runtime Skill loaded by the research agent
+eval/                           # From-scratch harness, cases.yaml, report.md
 scripts/ingest_sample_docs.py   # CLI bulk ingestion
-sample_docs/                    # A doc about this project, for testing RAG immediately
+sample_docs/                    # Sample corpus for RAG / research demos
 tests/                          # Unit tests -- no live services needed, see Testing
-docs/architecture.{svg,mmd}
+docs/architecture.{svg,md}      # Diagram (+ SPECS.md build plan)
 Dockerfile
 docker-compose.yml
 requirements.txt / requirements-dev.txt
@@ -187,6 +230,12 @@ environment variables:
 | `EMBEDDING_MODEL` | `BAAI/bge-small-en-v1.5` | Local, 384-dim, runs on CPU |
 | `CHUNK_SIZE` / `CHUNK_OVERLAP` | `800` / `120` | Characters, not tokens -- see `app/rag/chunking.py` |
 | `TOP_K` | `4` | Default retrieval depth |
+| `MAX_RESEARCH_ITERATIONS` | `8` | Supervisor research↔verify round budget |
+| `MAX_RESEARCH_TOOL_CALLS` | `12` | Global tool-call budget across research passes |
+| `MAX_RESEARCH_PASS_ITERATIONS` | `4` | LLM turns per research pass |
+| `TOOL_RESULT_MAX_CHARS` / `EVIDENCE_EXCERPT_MAX_CHARS` | `2000` / `500` | Context caps for research path |
+| `SKILLS_DIR` | `skills` | Progressive-disclosure Skills root |
+| `INJECT_FAILURE` | empty | Eval/demo: `kb_unavailable` \| `kb_timeout` \| `kb_malformed` |
 
 ## API reference
 
@@ -218,6 +267,62 @@ Illustrative response shape (the `tool_trace` is what makes tool calling
 
 Optional fields: `"provider"` (`"anthropic"|"openai"|"local"`, overrides
 `LLM_PROVIDER` for this one request), `"temperature"`, `"top_p"`.
+
+### `POST /research` — verified research (multi-agent)
+
+Additive path (does not replace `/chat`). Supervisor runs Research ↔ Verifier
+until evidence is sufficient or a hard budget stops the loop. See
+[Verified research (Track B)](#verified-research-track-b).
+
+**Live demo path** (after `make up` or `docker compose up --build`):
+
+1. Ingest the multi-doc sample corpus: `make ingest` (or
+   `docker compose exec app python scripts/ingest_sample_docs.py sample_docs`).
+2. Open Swagger at `http://localhost:8080/docs` → **POST /research**, or use curl below.
+3. Try these corpus-backed queries (each may search more than once, then verify):
+   - “What does this assistant support for local LLMs, and is that consistent across docs?”
+   - “Compare calculator vs knowledge-base usage guidance in the corpus”
+   - “Summarize RAG ingestion and confirm chunking claims against sources”
+4. Inspect the response: `answer`, `verification`, `evidence_notes`, `tool_trace`,
+   `stop_reason`, and `token_usage`.
+
+```bash
+curl -s http://localhost:8080/research -H 'Content-Type: application/json' -d '{
+  "messages": [{"role": "user", "content": "What does this assistant support for local LLMs?"}],
+  "temperature": 0.3,
+  "max_iterations": 8,
+  "baseline": "multi"
+}'
+```
+
+Illustrative response shape:
+
+```json
+{
+  "answer": "...",
+  "verification": {
+    "sufficient": true,
+    "unsupported_claims": [],
+    "suggested_next_action": "finalize",
+    "notes": "Claims backed by evidence notes."
+  },
+  "evidence_notes": {"question": "...", "items": [], "open_gaps": []},
+  "tool_trace": [
+    {"agent": "research", "tool": "search_knowledge_base", "arguments": {"query": "..."}, "result": "...", "is_error": false}
+  ],
+  "iterations": 2,
+  "stop_reason": "verified",
+  "token_usage": {
+    "prompt_tokens": 12000,
+    "completion_tokens": 900,
+    "total_tokens": 12900,
+    "by_agent": {"research": 10000, "verifier": 2900}
+  }
+}
+```
+
+`stop_reason`: `verified` | `clarification` | `max_iterations` | `max_tool_calls` | `tool_failure`.  
+`baseline`: `"multi"` (default Research + Verifier) or `"single"` (research tools only, for eval token comparison).
 
 ### `POST /rag/ingest`
 
@@ -344,6 +449,7 @@ per task:
 | Endpoint | Temperature | Why |
 |---|---|---|
 | `/chat` | `0.7` (default, overridable) | General conversation benefits from some variety |
+| `/research` | `0.3` (default, overridable) | Research/verify favors grounded, lower-variance phrasing |
 | `/rag/query` | `0.2` (fixed) | Faithfulness to retrieved text matters more than phrasing variety |
 | `/structured/summarize` | `0.0` (fixed) | Extraction/classification wants determinism, not creativity |
 
@@ -352,34 +458,83 @@ per-request `provider` override, so you can compare, say, Claude against a
 locally hosted Llama 3.1 answering the exact same prompt without restarting
 anything.
 
-## Testing
+## Verified research (Track B)
 
-The unit test suite (23 tests, `tests/`) deliberately needs **no** live
-Qdrant, no LLM API key, and no network access -- it tests pure logic:
-chunking edge cases, the calculator's refusal to execute anything beyond
-arithmetic, the tool registry's error handling, and the agent loop's control
-flow against a scripted fake `LLMProvider` (verifying the actual tool-call
-→ result → next-turn mechanics, not just that a function exists).
+Cross-source verified research answers corpus questions by searching (often
+more than once), drafting, and verifying claims against structured evidence —
+not by wrapping `/rag/query` in a fixed loop. A fixed pipeline cannot decide
+whether the first retrieval is enough, which follow-up query to run, or whether
+a draft is supported; those choices depend on intermediate results only the
+model can evaluate. Specs: [`docs/SPECS.md`](docs/SPECS.md). Latest harness
+output: [`eval/report.md`](eval/report.md).
 
-```bash
-make test
-# or: pip install -r requirements-dev.txt && pytest -v
-```
+### a. Context engineering technique
 
-### Evaluation harness (verified research)
+**Progressive disclosure via Skills** plus **capping / externalizing** verbose
+retrieval. The research system prompt starts with skill titles + one-line
+descriptions only; the full procedure in
+[`skills/verified_research/SKILL.md`](skills/verified_research/SKILL.md) is
+injected when the model calls `load_skill("verified_research")`
+(`app/tools/skill_tool.py`). After each `search_knowledge_base` call, results
+are capped (`TOOL_RESULT_MAX_CHARS` / `EVIDENCE_EXCERPT_MAX_CHARS` via
+`app/agent/context_budget.py`), and the agent writes
+[`EvidenceNotes`](app/agent/evidence_notes.py) so the verifier never sees the
+full exploratory tool dump. That addresses **context saturation**: full
+research instructions + multi-turn retrieval dumps burn tokens and degrade
+later tool choice.
 
-A from-scratch harness (no LangSmith / RAGAS / DeepEval) scores the
-`POST /research` multi-agent path with scripted LLM responses:
+### b. Agentic pattern
+
+**Multi-agent system**: Research agent + Verifier agent under a thin
+[`Supervisor`](app/agent/supervisor.py) (`POST /research`). Research can
+search again, clarify, or draft; Verifier sees only the draft + EvidenceNotes
+and returns `sufficient` / issues / next action. This avoids the
+**self-verification paradox** (same writer rubber-stamping its own answer),
+gives **context isolation**, and **specializes** tools (research vs verify).
+The classic [`AgentOrchestrator`](app/agent/orchestrator.py) `/chat` loop is
+unchanged. Hard stops (never unbounded): `verified`, `clarification`,
+`max_iterations`, `max_tool_calls`, or `tool_failure`.
+
+### c. Evaluation harness
+
+From-scratch harness — no LangSmith / RAGAS / DeepEval — under [`eval/`](eval/):
 
 ```bash
 make eval
 # or: python -m eval.harness
 ```
 
-Cases live in [`eval/cases.yaml`](eval/cases.yaml); the latest Markdown
-table + failure log is written to [`eval/report.md`](eval/report.md).
-That report also documents **failure injection** (`INJECT_FAILURE=kb_unavailable`):
-the agent must acknowledge KB errors instead of inventing corpus facts.
+Cases in [`eval/cases.yaml`](eval/cases.yaml) drive a scripted LLM through the
+supervisor. Metrics: **task completion rate**, **tool-call correctness**,
+**trajectory length**, **token usage** (optional multi vs `baseline=single`),
+plus a **failure taxonomy** (hard / soft / cascading soft) in
+[`eval/scoring.py`](eval/scoring.py). Markdown table + failure log:
+[`eval/report.md`](eval/report.md).
+
+### Additional requirements
+
+| Topic | This system |
+|---|---|
+| **Skill vs Agent** | A Skill is progressive procedural context (`SKILL.md`); the capability is an **agent** because it iteratively calls tools, evaluates evidence, and branches. |
+| **Token accounting** | Providers expose usage (or chars÷4 estimate in `app/llm/usage.py`); `/research` returns `token_usage` with optional `by_agent`. Set `"baseline": "single"` to compare without a separate verifier. |
+| **Failure injection** | `INJECT_FAILURE=kb_unavailable` (also `kb_timeout`, `kb_malformed`) forces `search_knowledge_base` to fail; the loop must acknowledge the error (`stop_reason=tool_failure`) and must not invent corpus facts. |
+| **Tool vs agent boundary** | Qdrant retrieval and the LLM API are **bounded tool/provider calls**, not peer agents. Stateful multi-step decisions live in our supervisor / research / verifier loops. |
+
+## Testing
+
+The unit test suite (`tests/`) deliberately needs **no** live
+Qdrant, no LLM API key, and no network access -- it tests pure logic:
+chunking, tools, orchestrator, research/verifier/supervisor, usage, and
+failure injection against a scripted fake `LLMProvider`.
+
+```bash
+make test
+# or: pip install -r requirements-dev.txt && pytest -v
+```
+
+For the verified-research harness and failure-injection eval case, see
+[Verified research (Track B)](#verified-research-track-b) (`make eval` →
+[`eval/report.md`](eval/report.md)).
 
 Live integration testing (a real Qdrant, a real model) is intentionally out
 of scope for this suite -- see [Notes & limitations](#notes--limitations).

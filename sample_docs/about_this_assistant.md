@@ -29,7 +29,9 @@ For fully local operation, the project can serve an open-source model such as
 Meta's Llama 3.1 8B Instruct with vLLM, using vLLM's OpenAI-compatible server.
 Because the wire format is OpenAI-compatible, the same client code used for
 the OpenAI cloud provider is reused for the local model -- only the base URL
-changes.
+changes. This is consistent with the RAG pipeline docs: local vLLM swaps the
+LLM endpoint only; Qdrant and local embeddings stay as described under
+vector database above.
 
 ## Try it
 
