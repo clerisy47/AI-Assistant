@@ -19,9 +19,9 @@ ingest:        ## Ingest sample_docs/ into the running vector store
 	docker compose exec app python scripts/ingest_sample_docs.py sample_docs
 
 test:          ## Run the unit test suite locally (no Docker needed)
-	pip install -r requirements-dev.txt --break-system-packages
-	pytest -v
+	uv sync --extra dev
+	uv run pytest -v
 
 eval:          ## Run verified-research eval harness (scripted; writes eval/report.md)
-	pip install -r requirements-dev.txt --break-system-packages
-	python -m eval.harness
+	uv sync --extra dev
+	uv run python -m eval.harness

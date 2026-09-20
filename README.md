@@ -153,15 +153,38 @@ tests/                          # Unit tests -- no live services needed, see Tes
 docs/architecture.{svg,md}      # Diagram (+ SPECS.md build plan)
 Dockerfile
 docker-compose.yml
-requirements.txt / requirements-dev.txt
+pyproject.toml / uv.lock         # Locked env (uv); see [Environment (uv)](#environment-uv)
 .env.example
 Makefile
 ```
+
+## Environment (`uv`)
+
+Dependencies are declared in [`pyproject.toml`](pyproject.toml) and **fully locked** in
+[`uv.lock`](uv.lock). Without a lockfile, local `pip install` and Docker could resolve
+different transitive versions of FastAPI / Pydantic / qdrant-client /
+sentence-transformers, which silently changes RAG and tool-loop behavior and breaks
+later MLflow run comparability.
+
+**One-command local setup:**
+
+```bash
+uv sync --extra dev
+uv run pytest -v
+# later: uv run python -m eval.harness
+```
+
+Docker uses the **same** lockfile: the image builder runs `uv sync --frozen` (no
+`uv export` → pip). Optional extras: `--extra dev` (pytest, PyYAML), `--extra mlops`
+(mlflow, evidently — used from Phase 11+).
+
+Install [uv](https://docs.astral.sh/uv/) if you do not have it yet.
 
 ## Getting started
 
 ### Prerequisites
 
+- [uv](https://docs.astral.sh/uv/) (local tests / eval)
 - Docker + Docker Compose v2
 - An Anthropic or OpenAI API key, **or** an NVIDIA GPU with the
   [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
@@ -529,7 +552,7 @@ failure injection against a scripted fake `LLMProvider`.
 
 ```bash
 make test
-# or: pip install -r requirements-dev.txt && pytest -v
+# or: uv sync --extra dev && uv run pytest -v
 ```
 
 For the verified-research harness and failure-injection eval case, see

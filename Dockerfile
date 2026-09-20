@@ -1,38 +1,53 @@
 # syntax=docker/dockerfile:1
 
-# ---- Build stage: install Python deps into an isolated user site-packages dir ----
+# ---- Build stage: locked deps via uv into /app/.venv ----
+# Docker installs from pyproject.toml + uv.lock (same lockfile as local
+# `uv sync`). No `uv export` → pip; the lockfile is the single source of truth.
 FROM python:3.11-slim AS builder
 
-WORKDIR /build
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+WORKDIR /app
+
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=0 \
+    UV_NO_DEV=1
 
 # build-essential is needed to build a couple of sentence-transformers'
-# transitive dependencies from source on some platforms; removed again in
-# the runtime stage so it doesn't bloat the final image.
+# transitive dependencies from source on some platforms; not copied to runtime.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --frozen --no-install-project
 
-# ---- Runtime stage: slim image, no build tools, non-root user ----
+COPY app ./app
+COPY sample_docs ./sample_docs
+COPY scripts ./scripts
+COPY skills ./skills
+COPY pyproject.toml uv.lock ./
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen
+
+# ---- Runtime stage: slim image, no uv / build tools, non-root user ----
 FROM python:3.11-slim
 
 WORKDIR /app
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PATH=/home/appuser/.local/bin:$PATH \
+    PATH=/app/.venv/bin:$PATH \
     HF_HOME=/home/appuser/.cache/huggingface
 
 RUN useradd --create-home --uid 1000 appuser
 
-COPY --from=builder /root/.local /home/appuser/.local
-COPY app ./app
-COPY sample_docs ./sample_docs
-COPY scripts ./scripts
+COPY --from=builder --chown=appuser:appuser /app /app
 
-RUN chown -R appuser:appuser /app /home/appuser/.local
 USER appuser
 
 EXPOSE 8080

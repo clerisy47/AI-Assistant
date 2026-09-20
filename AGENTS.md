@@ -61,7 +61,7 @@ Details: [`docs/architecture.md`](docs/architecture.md), [`docs/SPECS.md`](docs/
 | `eval/` | Custom evaluation harness + golden set for Evidently |
 | `mlops/` | MLflow tracking helpers, Evidently runner, Airflow DAG, reports |
 | `tests/` | Unit tests; reuse `ScriptedProvider` patterns |
-| `pyproject.toml` / `uv.lock` | Reproducible env (after Phase 10) |
+| `pyproject.toml` / `uv.lock` | Reproducible env (`uv sync` / `uv run`) |
 | `.cursor/skills/` | Cursor coding skills |
 | `.cursor/agents/` | Cursor subagents |
 

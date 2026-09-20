@@ -16,6 +16,7 @@ tests/
 docs/
 *.md
 !README.md
+!skills/**/*.md
 
 .DS_Store
 .idea/

@@ -1,6 +1,6 @@
 # Specs — Verified Research Agent + MLOps
 
-**Status:** In progress — Phases 0–9 complete; next is Phase 10 (Environment / uv)  
+**Status:** In progress — Phases 0–10 complete; next is Phase 11 (MLflow experiments)  
 **Base:** Existing W15 assistant (`POST /chat` tool loop, RAG-as-tool, FastAPI + Qdrant)  
 **Tracks covered:**
 - **Track B (Agentic AI):** Cross-source verified research with a multi-agent loop, context engineering, and a custom eval harness (Phases 0–9).
@@ -150,7 +150,7 @@ Each phase has: goal, deliverables, acceptance criteria, and suggested file touc
 | 7 | Failure injection | DONE | `INJECT_FAILURE` in config, `knowledge_base_tool.py` inject hook, supervisor `tool_failure`, `eval` case `kb_unavailable_recognized`, `tests/test_failure_injection.py` |
 | 8 | Track B docs + architecture | DONE | `README.md` Track B a–c + additional; `docs/architecture.md` / `.svg` (supervisor + research↔verifier; MLOps stubbed) |
 | 9 | Polish / Track B checklist | DONE | `sample_docs/{about_this_assistant,tools_and_usage,rag_pipeline}.md`; README `/research` demo; `eval/report.md`; §8 Track B checked |
-| 10 | Environment (`uv`) | NOT STARTED | |
+| 10 | Environment (`uv`) | DONE | `pyproject.toml`, `uv.lock`, Makefile/Dockerfile/`uv sync --frozen` |
 | 11 | MLflow experiments | NOT STARTED | |
 | 12 | Evidently regression | NOT STARTED | |
 | 13 | Airflow DAG | NOT STARTED | |
@@ -514,15 +514,15 @@ There is no trained model to version. Tracking and monitoring apply to **prompts
 
 **Goal:** Reproducible Python env for the assistant; kill “works on my machine” dependency drift.
 
-**Why uv (project-specific):** Today pins live in loose `requirements*.txt` without a lockfile; Docker and local `pip install` can resolve different transitive versions (FastAPI/Pydantic/qdrant-client/sentence-transformers), which silently change RAG and tool-loop behavior between machines and break MLflow run comparability.
+**Why uv (project-specific):** Before Phase 10, pins lived in loose `requirements*.txt` without a lockfile; Docker and local `pip install` could resolve different transitive versions (FastAPI/Pydantic/qdrant-client/sentence-transformers), which silently changed RAG and tool-loop behavior between machines and broke MLflow run comparability.
 
 **Deliverables**
 
-- [ ] `pyproject.toml` with project metadata, runtime deps, optional extras (`[dev]`, `[mlops]` for mlflow/evidently/airflow)
-- [ ] Committed `uv.lock`
-- [ ] Migrate Makefile / Dockerfile / README to `uv sync` / `uv run`
-- [ ] Keep or generate export for Docker if needed (`uv export` → requirements for slim image) — document the chosen path
-- [ ] Confirm clean-clone path: `uv sync && uv run pytest` (and later `uv run python -m eval.harness`)
+- [x] `pyproject.toml` with project metadata, runtime deps, optional extras (`[dev]`, `[mlops]` for mlflow/evidently; Airflow deferred to Phase 13)
+- [x] Committed `uv.lock`
+- [x] Migrate Makefile / Dockerfile / README to `uv sync` / `uv run`
+- [x] Docker path: **`uv sync --frozen` in the builder** (same lockfile as local; no `uv export` → pip) — documented in README + Dockerfile comments
+- [x] Confirm clean-clone path: `uv sync && uv run pytest` (and later `uv run python -m eval.harness`)
 
 **Acceptance**
 
@@ -530,6 +530,8 @@ There is no trained model to version. Tracking and monitoring apply to **prompts
 - README §a documents the one-command reproduction path and the concrete dependency problem uv solves here.
 
 **Suggested paths:** `pyproject.toml`, `uv.lock`, `Makefile`, `Dockerfile`, `.python-version`
+
+**Notes (implemented):** `tool.uv.package = false` (app imported from repo root). `[mlops]` declares mlflow + evidently only; Airflow lands in Phase 13.
 
 ---
 
@@ -734,7 +736,7 @@ For each `prompt_vN` (+ config):
 
 ### Track A — MLOps
 
-- [ ] `pyproject.toml` + committed `uv.lock`; clean-clone `uv sync` works
+- [x] `pyproject.toml` + committed `uv.lock`; clean-clone `uv sync` works
 - [ ] ≥3 prompt/config versions; each revision driven by a traced failure
 - [ ] Full step traces logged (tool args/results + reasoning + stop reason)
 - [ ] ≥2–3 representative trace artifacts per version (success + failure)
