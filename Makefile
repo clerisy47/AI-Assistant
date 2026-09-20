@@ -1,4 +1,4 @@
-.PHONY: up up-local down logs test eval ingest fmt-check build mlflow-experiment
+.PHONY: up up-local down logs test eval ingest fmt-check build mlflow-experiment evidently-regression
 
 up:            ## Start app + Qdrant, using a cloud LLM provider
 	docker compose up --build
@@ -29,3 +29,7 @@ eval:          ## Run verified-research eval harness (scripted; writes eval/repo
 mlflow-experiment:  ## Phase 11: prompt matrix → MLflow + mlops/reports/mlflow_comparison.md
 	uv sync --extra mlops --extra dev
 	MLFLOW_DISABLE_AGENT_HINT=1 uv run --extra mlops python -m mlops.experiment_runner
+
+evidently-regression:  ## Phase 12: golden set → Evidently suite + pct_tests_passed → MLflow
+	uv sync --extra mlops --extra dev
+	MLFLOW_DISABLE_AGENT_HINT=1 uv run --extra mlops python -m mlops.evidently_regression --prompt-version prompt_v3

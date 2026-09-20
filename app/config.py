@@ -59,6 +59,10 @@ class Settings(BaseSettings):
     PROMPT_VERSION: str = "prompt_v1"
     MLFLOW_TRACKING_URI: str = "./mlruns"
     MLFLOW_EXPERIMENT_NAME: str = "verified-research"
+    GOLDEN_SET_PATH: str = "eval/golden_set.yaml"
+    EVIDENTLY_PASS_THRESHOLD: float = 0.8
+    EVIDENTLY_JUDGE_PROVIDER: str = "openai"
+    EVIDENTLY_JUDGE_MODEL: str = "gpt-4o-mini"
 
     # --- App ------------------------------------------------------------------------
     APP_HOST: str = "0.0.0.0"

@@ -77,16 +77,17 @@ flowchart TB
     Anthropic["Anthropic Claude API<br/>(external, cloud)"]
     OpenAI["OpenAI API<br/>(external, cloud)"]
 
-    subgraph MLOpsStub["MLOps tracking — Phase 11+ (Evidently/Airflow planned)"]
-        MLflowStub["MLflow params / metrics / step traces"]
-        EvidentlyStub["Evidently golden regression"]
-        AirflowStub["Airflow scheduled eval"]
+    subgraph MLOpsTrack["MLOps tracking (Track A)"]
+        MLflowBox["MLflow params / metrics / step traces"]
+        EvidentlyBox["Evidently golden regression"]
+        AirflowStub["Airflow scheduled eval (Phase 13)"]
     end
 
     Client -- HTTP --> Routers
     LLMIface -. cloud mode .-> Anthropic
     LLMIface -. cloud mode .-> OpenAI
-    Supervisor -. Phase 11 .-> MLOpsStub
+    Supervisor --> MLflowBox
+    Supervisor --> EvidentlyBox
 
     classDef app fill:#eff6ff,stroke:#2563eb,color:#1e3a8a;
     classDef container fill:#f0fdf4,stroke:#16a34a,color:#14532d;
@@ -94,13 +95,15 @@ flowchart TB
     classDef client fill:#f8fafc,stroke:#334155,color:#0f172a;
     classDef research fill:#f5f3ff,stroke:#7c3aed,color:#4c1d95;
     classDef stub fill:#f8fafc,stroke:#94a3b8,color:#64748b,stroke-dasharray: 5 5;
+    classDef mlops fill:#ecfeff,stroke:#0891b2,color:#155e75;
 
     class Client client;
     class Routers,Orchestrator,ChatTools,LLMIface,RAG app;
     class Supervisor,Research,Verifier,Skill,Notes research;
     class Qdrant,VLLM container;
     class Anthropic,OpenAI cloud;
-    class MLflowStub,EvidentlyStub,AirflowStub stub;
+    class MLflowBox,EvidentlyBox mlops;
+    class AirflowStub stub;
 ```
 
 A standalone image version is at [`docs/architecture.svg`](docs/architecture.svg)
@@ -147,8 +150,8 @@ app/
 └── api/                        # chat, research, rag, structured, health
 skills/verified_research/       # Runtime Skill loaded by the research agent
 prompts/                        # Versioned research system prompts (prompt_v1…)
-mlops/                          # MLflow tracking, experiment runner, reports/
-eval/                           # From-scratch harness, cases.yaml, report.md
+mlops/                          # MLflow + Evidently regression, reports/
+eval/                           # Harness, cases.yaml, golden_set.yaml, report.md
 scripts/ingest_sample_docs.py   # CLI bulk ingestion
 sample_docs/                    # Sample corpus for RAG / research demos
 tests/                          # Unit tests -- no live services needed, see Testing
@@ -200,7 +203,37 @@ make mlflow-experiment
 Diagnoses: [`prompts/CHANGELOG.md`](prompts/CHANGELOG.md). Comparison export:
 [`mlops/reports/mlflow_comparison.md`](mlops/reports/mlflow_comparison.md). UI:
 `MLFLOW_TRACKING_URI=./mlruns MLFLOW_ALLOW_FILE_STORE=true uv run --extra mlops mlflow ui`.
-Evidently regression and Airflow scheduling are Phase 12–13.
+
+## Monitoring & drift (Evidently) — Track A §c
+
+Fixed **reference** answers live in [`eval/golden_set.yaml`](eval/golden_set.yaml)
+(approved `prompt_v3`-aligned baselines). **Current** answers come from the same
+scripted research scenarios under the candidate prompt/config.
+
+| Check | What it catches |
+|---|---|
+| Reference correctness | Current answer loses or contradicts golden facts |
+| Refusal / no-fabrication | On KB failure (`kb_unavailable_recognized`), answer must acknowledge unavailability — not invent corpus claims |
+
+```bash
+make evidently-regression
+# deliberate regression demo (should fail promotion):
+uv run --extra mlops python -m mlops.evidently_regression --bad-prompt-demo --prompt-version prompt_bad
+# live LLM judges (needs API key):
+uv run --extra mlops python -m mlops.evidently_regression --judge-mode llm --prompt-version prompt_v3
+```
+
+**Metrics / promotion:** `pct_tests_passed` (and per-check rates) log to MLflow;
+tag `promoted=true` only if `pct_tests_passed >= EVIDENTLY_PASS_THRESHOLD` (default
+`0.8`). Below threshold → do not promote that prompt version.
+
+**Report takeaway (scripted `prompt_v3`):**
+[`mlops/reports/evidently_prompt_v3.html`](mlops/reports/evidently_prompt_v3.html)
++ notes — 100% checks passed, suite `INCORRECT`/`FABRICATED` counts = 0, promoted.
+Judge sanity: scripted heuristics match human reading of golden currents;
+`--bad-prompt-demo` fails both checks as expected.
+
+Airflow scheduled regression is Phase 13 (Track A §d).
 
 ## Getting started
 
@@ -284,6 +317,9 @@ environment variables:
 | `PROMPTS_DIR` / `PROMPT_VERSION` | `prompts` / `prompt_v1` | Active research system prompt file |
 | `MLFLOW_TRACKING_URI` | `./mlruns` | Local MLflow file store (set `MLFLOW_ALLOW_FILE_STORE=true` for MLflow 3.x) |
 | `MLFLOW_EXPERIMENT_NAME` | `verified-research` | Experiment name for `make mlflow-experiment` |
+| `GOLDEN_SET_PATH` | `eval/golden_set.yaml` | Evidently reference set |
+| `EVIDENTLY_PASS_THRESHOLD` | `0.8` | Min `pct_tests_passed` to promote a version |
+| `EVIDENTLY_JUDGE_PROVIDER` / `EVIDENTLY_JUDGE_MODEL` | `openai` / `gpt-4o-mini` | Live `--judge-mode llm` only |
 
 ## API reference
 
@@ -579,6 +615,9 @@ failure injection against a scripted fake `LLMProvider`.
 make test
 # or: uv sync --extra dev && uv run pytest -v
 ```
+
+Evidently regression unit tests use scripted judges (no judge API key). Full
+golden-set run + HTML: `make evidently-regression`.
 
 For the verified-research harness and failure-injection eval case, see
 [Verified research (Track B)](#verified-research-track-b) (`make eval` →

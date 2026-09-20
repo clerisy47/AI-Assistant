@@ -1,0 +1,40 @@
+# Fixed golden query → reference answers for Evidently regression (Phase 12).
+# References are approved baseline answers aligned with prompt_v3 scripted outcomes.
+# Reproducible: no live LLM required to load this file.
+
+cases:
+  - id: sufficient_first_search
+    query: "What local LLM support does this assistant document?"
+    scenario: sufficient_first_search
+    check_focus: correctness
+    reference: >-
+      The assistant supports local LLMs through an OpenAI-compatible vLLM provider.
+
+  - id: needs_re_search
+    query: "Compare local LLM support claims in the docs."
+    scenario: needs_re_search
+    check_focus: correctness
+    reference: >-
+      Local LLMs are supported through an OpenAI-compatible vLLM provider.
+
+  - id: verify_fail_then_revise
+    query: "Summarize local LLM provider support and confirm against sources."
+    scenario: verify_fail_then_revise
+    check_focus: correctness
+    reference: >-
+      Local LLMs are supported through an OpenAI-compatible vLLM provider.
+
+  - id: clarification
+    query: "Compare things."
+    scenario: clarification
+    check_focus: correctness
+    reference: >-
+      Which docs should I compare?
+
+  - id: kb_unavailable_recognized
+    query: "What local LLM support is documented?"
+    scenario: kb_unavailable_recognized
+    check_focus: refusal
+    failure_mode: kb_unavailable
+    reference: >-
+      Knowledge base unavailable; I cannot answer from the corpus. Please retry later.

@@ -1,6 +1,6 @@
 # Specs — Verified Research Agent + MLOps
 
-**Status:** In progress — Phases 0–11 complete; next is Phase 12 (Evidently regression)  
+**Status:** In progress — Phases 0–12 complete; next is Phase 13 (Airflow DAG)  
 **Base:** Existing W15 assistant (`POST /chat` tool loop, RAG-as-tool, FastAPI + Qdrant)  
 **Tracks covered:**
 - **Track B (Agentic AI):** Cross-source verified research with a multi-agent loop, context engineering, and a custom eval harness (Phases 0–9).
@@ -152,7 +152,7 @@ Each phase has: goal, deliverables, acceptance criteria, and suggested file touc
 | 9 | Polish / Track B checklist | DONE | `sample_docs/{about_this_assistant,tools_and_usage,rag_pipeline}.md`; README `/research` demo; `eval/report.md`; §8 Track B checked |
 | 10 | Environment (`uv`) | DONE | `pyproject.toml`, `uv.lock`, Makefile/Dockerfile/`uv sync --frozen` |
 | 11 | MLflow experiments | DONE | `prompts/prompt_v{1,2,3}.md`, `CHANGELOG.md`, `mlops/tracking.py`, `experiment_runner.py`, `reports/mlflow_comparison.md` |
-| 12 | Evidently regression | NOT STARTED | |
+| 12 | Evidently regression | DONE | `eval/golden_set.yaml`, `mlops/evidently_regression.py`, `mlops/reports/evidently_prompt_v3.html`, `tests/test_evidently_regression.py` |
 | 13 | Airflow DAG | NOT STARTED | |
 | 14 | MLOps docs polish | NOT STARTED | |
 
@@ -622,15 +622,15 @@ For each `prompt_vN` (+ config):
 
 **Deliverables**
 
-- [ ] `eval/golden_set.yaml` (or JSON) — fixed representative queries + approved **reference** answers (from best Part I / earlier prompt version)
-- [ ] `mlops/evidently_regression.py` — build current responses for the same queries; run Evidently Test Suite with `evidently[llm]`
-- [ ] **At least two judge checks**, including:
+- [x] `eval/golden_set.yaml` (or JSON) — fixed representative queries + approved **reference** answers (from best Part I / earlier prompt version)
+- [x] `mlops/evidently_regression.py` — build current responses for the same queries; run Evidently Test Suite with `evidently[llm]`
+- [x] **At least two judge checks**, including:
   1. **Reference-based correctness** — does the new response contradict or lose information present in the reference? (Evidently `BinaryClassificationPromptTemplate` → `correct`/`incorrect` + reasoning)
   2. **Second check** (choose and document one): e.g. faithfulness to retrieved evidence / refusal quality on tool-failure cases / no fabricated citations
-- [ ] HTML report written to `mlops/reports/evidently_<prompt_version>.html`
-- [ ] Log `pct_tests_passed` (and optionally per-check rates) as **MLflow metrics** on the same run as Phase 11
-- [ ] Promotion rule: if too many cases fail (threshold e.g. `pct_tests_passed < 0.8`), **do not promote** that prompt version
-- [ ] Short interpretation note: which cases failed, whether judge verdicts match human reading (sanity-check the judge)
+- [x] HTML report written to `mlops/reports/evidently_<prompt_version>.html`
+- [x] Log `pct_tests_passed` (and optionally per-check rates) as **MLflow metrics** on the same run as Phase 11
+- [x] Promotion rule: if too many cases fail (threshold e.g. `pct_tests_passed < 0.8`), **do not promote** that prompt version
+- [x] Short interpretation note: which cases failed, whether judge verdicts match human reading (sanity-check the judge)
 
 **Reference vs current (for README §c)**
 
@@ -646,6 +646,8 @@ For each `prompt_vN` (+ config):
 - README §c explains reference/current, metrics, report takeaway, and action on threshold breach.
 
 **Suggested paths:** `eval/golden_set.yaml`, `mlops/evidently_regression.py`, `mlops/reports/*.html`
+
+**Notes (implemented):** Second check = **refusal / no-fabrication on KB failure** (`kb_unavailable_recognized`). Default CI path uses scripted heuristic judges + Evidently `TextEvals` category-count tests (`unique_values_count` of `INCORRECT`/`FABRICATED` == 0); `--judge-mode llm` runs live `BinaryClassificationPromptTemplate` via Evidently `LLMEval`. Promotion: `pct_tests_passed >= EVIDENTLY_PASS_THRESHOLD` (default 0.8) → MLflow tag `promoted=true|false`. Deliberate failure: `--bad-prompt-demo`.
 
 ---
 
@@ -739,13 +741,13 @@ For each `prompt_vN` (+ config):
 ### Track A — MLOps
 
 - [x] `pyproject.toml` + committed `uv.lock`; clean-clone `uv sync` works
-- [ ] ≥3 prompt/config versions; each revision driven by a traced failure
-- [ ] Full step traces logged (tool args/results + reasoning + stop reason)
-- [ ] ≥2–3 representative trace artifacts per version (success + failure)
-- [ ] MLflow params/metrics/artifacts + exported comparison; winner + trade-off documented
-- [ ] Evidently golden set + Test Suite with ≥2 judge checks (incl. reference correctness)
-- [ ] `pct_tests_passed` (or equivalent) logged to MLflow; failing suite blocks promotion
-- [ ] Evidently HTML reports present; judge sanity-check noted in README
+- [x] ≥3 prompt/config versions; each revision driven by a traced failure
+- [x] Full step traces logged (tool args/results + reasoning + stop reason)
+- [x] ≥2–3 representative trace artifacts per version (success + failure)
+- [x] MLflow params/metrics/artifacts + exported comparison; winner + trade-off documented
+- [x] Evidently golden set + Test Suite with ≥2 judge checks (incl. reference correctness)
+- [x] `pct_tests_passed` (or equivalent) logged to MLflow; failing suite blocks promotion
+- [x] Evidently HTML reports present; judge sanity-check noted in README
 - [ ] Airflow DAG (or dry-run equivalent) + degradation threshold behavior documented
 - [ ] README sections a–d (uv, MLflow, Evidently, orchestration) reflect **this** implementation
 - [ ] Repo well-organized; setup/run/understand instructions clear for graders

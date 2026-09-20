@@ -109,3 +109,34 @@ def active_run_id() -> Optional[str]:
     mlflow = _import_mlflow()
     run = mlflow.active_run()
     return run.info.run_id if run is not None else None
+
+
+def log_evidently_metrics(
+    pct_tests_passed: float,
+    *,
+    per_check: dict[str, float] | None = None,
+    promoted: bool,
+) -> None:
+    """Log Evidently pass rate + promotion flag on the active MLflow run."""
+    mlflow = _import_mlflow()
+    mlflow.log_metric("pct_tests_passed", float(pct_tests_passed))
+    mlflow.set_tag("promoted", "true" if promoted else "false")
+    if per_check:
+        for name, rate in per_check.items():
+            mlflow.log_metric(f"evidently_{name}", float(rate))
+
+
+def log_evidently_report(
+    html_path: Path | str,
+    *,
+    notes_path: Path | str | None = None,
+    artifact_subdir: str = "artifacts",
+) -> None:
+    mlflow = _import_mlflow()
+    html = Path(html_path)
+    if html.is_file():
+        mlflow.log_artifact(str(html), artifact_path=artifact_subdir)
+    if notes_path is not None:
+        notes = Path(notes_path)
+        if notes.is_file():
+            mlflow.log_artifact(str(notes), artifact_path=artifact_subdir)
