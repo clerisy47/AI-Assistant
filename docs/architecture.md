@@ -54,27 +54,30 @@ flowchart TB
     Anthropic["Anthropic Claude API<br/>(external, cloud)"]
     OpenAI["OpenAI API<br/>(external, cloud)"]
 
-    subgraph MLOpsStub["MLOps tracking — planned Phase 11–13"]
-        MLflowStub["MLflow params / metrics / step traces"]
-        EvidentlyStub["Evidently golden regression"]
-        AirflowStub["Airflow scheduled eval"]
+    subgraph MLOpsTrack["MLOps tracking (Track A)"]
+        MLflowBox["MLflow params / metrics / step traces"]
+        EvidentlyBox["Evidently golden regression"]
+        AirflowBox["Airflow DAG / make airflow-dry-run"]
     end
 
     Client -- HTTP --> Routers
     LLMIface -. cloud mode .-> Anthropic
     LLMIface -. cloud mode .-> OpenAI
-    Supervisor -. future .-> MLOpsStub
+    Supervisor --> MLflowBox
+    Supervisor --> EvidentlyBox
+    AirflowBox --> EvidentlyBox
+    AirflowBox --> MLflowBox
 
     classDef app fill:#eff6ff,stroke:#2563eb,color:#1e3a8a;
     classDef container fill:#f0fdf4,stroke:#16a34a,color:#14532d;
     classDef cloud fill:#fff7ed,stroke:#ea580c,color:#7c2d12;
     classDef client fill:#f8fafc,stroke:#334155,color:#0f172a;
     classDef research fill:#f5f3ff,stroke:#7c3aed,color:#4c1d95;
-    classDef stub fill:#f8fafc,stroke:#94a3b8,color:#64748b,stroke-dasharray: 5 5;
+    classDef mlops fill:#ecfeff,stroke:#0891b2,color:#155e75;
 
     class Client client;
     class Routers,Orchestrator,ChatTools,LLMIface,RAG app;
     class Supervisor,Research,Verifier,Skill,Notes research;
     class Qdrant,VLLM container;
     class Anthropic,OpenAI cloud;
-    class MLflowStub,EvidentlyStub,AirflowStub stub;
+    class MLflowBox,EvidentlyBox,AirflowBox mlops;

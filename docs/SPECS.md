@@ -1,6 +1,6 @@
 # Specs — Verified Research Agent + MLOps
 
-**Status:** In progress — Phases 0–13 complete; next is Phase 14 (MLOps docs polish)  
+**Status:** Complete — Phases 0–14 done (Track B + Track A)  
 **Base:** Existing W15 assistant (`POST /chat` tool loop, RAG-as-tool, FastAPI + Qdrant)  
 **Tracks covered:**
 - **Track B (Agentic AI):** Cross-source verified research with a multi-agent loop, context engineering, and a custom eval harness (Phases 0–9).
@@ -148,13 +148,13 @@ Each phase has: goal, deliverables, acceptance criteria, and suggested file touc
 | 5 | Token / cost accounting | DONE | `app/llm/usage.py`, providers + `StructuredLLMResponse`, supervisor rollup, `baseline=single`, `tests/test_usage.py` |
 | 6 | Eval harness | DONE | `eval/harness.py`, `cases.yaml`, `report.md`, `tests/test_eval_scoring.py` |
 | 7 | Failure injection | DONE | `INJECT_FAILURE` in config, `knowledge_base_tool.py` inject hook, supervisor `tool_failure`, `eval` case `kb_unavailable_recognized`, `tests/test_failure_injection.py` |
-| 8 | Track B docs + architecture | DONE | `README.md` Track B a–c + additional; `docs/architecture.md` / `.svg` (supervisor + research↔verifier; MLOps stubbed) |
+| 8 | Track B docs + architecture | DONE | `README.md` Track B a–c + additional; `docs/architecture.md` / `.svg` (agentic loop; MLOps finalized in Phase 14) |
 | 9 | Polish / Track B checklist | DONE | `sample_docs/{about_this_assistant,tools_and_usage,rag_pipeline}.md`; README `/research` demo; `eval/report.md`; §8 Track B checked |
 | 10 | Environment (`uv`) | DONE | `pyproject.toml`, `uv.lock`, Makefile/Dockerfile/`uv sync --frozen` |
 | 11 | MLflow experiments | DONE | `prompts/prompt_v{1,2,3}.md`, `CHANGELOG.md`, `mlops/tracking.py`, `experiment_runner.py`, `reports/mlflow_comparison.md` |
 | 12 | Evidently regression | DONE | `eval/golden_set.yaml`, `mlops/evidently_regression.py`, `mlops/reports/evidently_prompt_v3.html`, `tests/test_evidently_regression.py` |
 | 13 | Airflow DAG | DONE | `mlops/airflow/dags/regression_eval_dag.py`, `mlops/regression_pipeline.py`, `make airflow-dry-run`, `tests/test_regression_pipeline.py` |
-| 14 | MLOps docs polish | NOT STARTED | |
+| 14 | MLOps docs polish | DONE | README Track A a–d + grader quick path; `docs/architecture.md`/`.svg` live MLOps; `.env.example`; `mlops/reports/` |
 
 Coding agents: when you complete a phase, mark its deliverables `- [x]` below, set this table’s Status to `DONE` (or `PARTIAL`), and refresh the header `**Status:**` line.
 
@@ -685,16 +685,16 @@ For each `prompt_vN` (+ config):
 
 **Deliverables**
 
-- [ ] README sections **a–d** (implementation-specific, not tool tutorials):
+- [x] README sections **a–d** (implementation-specific, not tool tutorials):
   - **a. Environment & Reproducibility (uv)**
   - **b. Experiment Tracking Strategy (MLflow)**
   - **c. Monitoring & Drift Strategy (Evidently)**
   - **d. Orchestration (Airflow)**
-- [ ] Architecture diagram updated with MLflow / Evidently / Airflow boxes
-- [ ] Repo layout tidy: `prompts/`, `mlops/`, `eval/`, `docs/`, clear setup in README
-- [ ] Exported MLflow comparison + Evidently HTML reports committed under `mlops/reports/` (or documented generation commands + sample outputs)
-- [ ] `.env.example` updated (`MLFLOW_TRACKING_URI`, Evidently/judge model keys, thresholds)
-- [ ] Submission completeness pass: organization, docs quality, runnable paths from clean clone
+- [x] Architecture diagram updated with MLflow / Evidently / Airflow boxes
+- [x] Repo layout tidy: `prompts/`, `mlops/`, `eval/`, `docs/`, clear setup in README
+- [x] Exported MLflow comparison + Evidently HTML reports committed under `mlops/reports/` (or documented generation commands + sample outputs)
+- [x] `.env.example` updated (`MLFLOW_TRACKING_URI`, Evidently/judge model keys, thresholds)
+- [x] Submission completeness pass: organization, docs quality, runnable paths from clean clone
 
 **Acceptance**
 
@@ -751,8 +751,8 @@ For each `prompt_vN` (+ config):
 - [x] `pct_tests_passed` (or equivalent) logged to MLflow; failing suite blocks promotion
 - [x] Evidently HTML reports present; judge sanity-check noted in README
 - [x] Airflow DAG (or dry-run equivalent) + degradation threshold behavior documented
-- [ ] README sections a–d (uv, MLflow, Evidently, orchestration) reflect **this** implementation
-- [ ] Repo well-organized; setup/run/understand instructions clear for graders
+- [x] README sections a–d (uv, MLflow, Evidently, orchestration) reflect **this** implementation
+- [x] Repo well-organized; setup/run/understand instructions clear for graders
 
 ---
 

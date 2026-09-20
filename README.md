@@ -158,12 +158,12 @@ tests/                          # Unit tests -- no live services needed, see Tes
 docs/architecture.{svg,md}      # Diagram (+ SPECS.md build plan)
 Dockerfile
 docker-compose.yml
-pyproject.toml / uv.lock         # Locked env (uv); see [Environment (uv)](#environment-uv)
+pyproject.toml / uv.lock         # Locked env (uv); see [Environment & Reproducibility (uv)](#environment--reproducibility-uv--track-a-a)
 .env.example
 Makefile
 ```
 
-## Environment (`uv`)
+## Environment & Reproducibility (uv) — Track A §a
 
 Dependencies are declared in [`pyproject.toml`](pyproject.toml) and **fully locked** in
 [`uv.lock`](uv.lock). Without a lockfile, local `pip install` and Docker could resolve
@@ -181,7 +181,7 @@ uv run pytest -v
 
 Docker uses the **same** lockfile: the image builder runs `uv sync --frozen` (no
 `uv export` → pip). Optional extras: `--extra dev` (pytest, PyYAML), `--extra mlops`
-(mlflow, evidently — used from Phase 11+).
+(mlflow, evidently — used for Track A experiments and regression).
 
 Install [uv](https://docs.astral.sh/uv/) if you do not have it yet.
 
@@ -233,7 +233,7 @@ tag `promoted=true` only if `pct_tests_passed >= EVIDENTLY_PASS_THRESHOLD` (defa
 Judge sanity: scripted heuristics match human reading of golden currents;
 `--bad-prompt-demo` fails both checks as expected.
 
-Airflow scheduled regression is Phase 13 (Track A §d).
+Scheduled regression (orchestration) is documented under [Orchestration (Airflow) — Track A §d](#orchestration-airflow--track-a-d).
 
 ## Orchestration (Airflow) — Track A §d
 
@@ -261,6 +261,25 @@ at `mlops/airflow/dags/` (or copy the DAG file), and ensure the worker can
 `uv run` this repo with `--extra mlops`.
 
 ## Getting started
+
+### Grader quick path
+
+Assessment runbook (no live LLM / Qdrant required for the scripted Track A/B path):
+
+```bash
+uv sync --extra dev --extra mlops
+make test
+make eval                          # → eval/report.md
+make mlflow-experiment             # → mlops/reports/mlflow_comparison.md + traces
+# optional UI: MLFLOW_TRACKING_URI=./mlruns MLFLOW_ALLOW_FILE_STORE=true \
+#   uv run --extra mlops mlflow ui
+make evidently-regression          # → mlops/reports/evidently_prompt_v3.html
+make airflow-dry-run               # same callables as the Airflow DAG
+```
+
+Architecture: [`docs/architecture.md`](docs/architecture.md) / [`docs/architecture.svg`](docs/architecture.svg).
+Build plan + checklists: [`docs/SPECS.md`](docs/SPECS.md). Prompt diagnoses:
+[`prompts/CHANGELOG.md`](prompts/CHANGELOG.md).
 
 ### Prerequisites
 
@@ -340,7 +359,8 @@ environment variables:
 | `SKILLS_DIR` | `skills` | Progressive-disclosure Skills root |
 | `INJECT_FAILURE` | empty | Eval/demo: `kb_unavailable` \| `kb_timeout` \| `kb_malformed` |
 | `PROMPTS_DIR` / `PROMPT_VERSION` | `prompts` / `prompt_v1` | Active research system prompt file |
-| `MLFLOW_TRACKING_URI` | `./mlruns` | Local MLflow file store (set `MLFLOW_ALLOW_FILE_STORE=true` for MLflow 3.x) |
+| `MLFLOW_TRACKING_URI` | `./mlruns` | Local MLflow file store |
+| `MLFLOW_ALLOW_FILE_STORE` | `true` | Required for MLflow 3.x local file store / `mlflow ui` |
 | `MLFLOW_EXPERIMENT_NAME` | `verified-research` | Experiment name for `make mlflow-experiment` |
 | `GOLDEN_SET_PATH` | `eval/golden_set.yaml` | Evidently reference set |
 | `EVIDENTLY_PASS_THRESHOLD` | `0.8` | Min `pct_tests_passed` to promote a version |
