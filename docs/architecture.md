@@ -54,7 +54,7 @@ flowchart TB
     Anthropic["Anthropic Claude API<br/>(external, cloud)"]
     OpenAI["OpenAI API<br/>(external, cloud)"]
 
-    subgraph MLOpsTrack["MLOps tracking (Track A)"]
+    subgraph MLOpsTrack["MLOps tracking"]
         MLflowBox["MLflow params / metrics / step traces"]
         EvidentlyBox["Evidently golden regression"]
         AirflowBox["Airflow DAG / make airflow-dry-run"]

@@ -65,7 +65,7 @@
 
   <!-- Verified research path -->
   <rect x="472" y="304" width="456" height="340" rx="8" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.5"/>
-  <text x="490" y="326" font-size="12" font-weight="700" fill="#4c1d95">Verified research path (Track B)</text>
+  <text x="490" y="326" font-size="12" font-weight="700" fill="#4c1d95">Verified research path</text>
 
   <rect x="490" y="340" width="420" height="48" rx="6" fill="#ffffff" stroke="#7c3aed" stroke-width="1"/>
   <text x="700" y="360" text-anchor="middle" font-size="12" font-weight="700" fill="#4c1d95">Supervisor</text>
@@ -155,9 +155,9 @@
 
   <path d="M928,692 C960,620 960,520 980,504" fill="none" stroke="#ea580c" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
 
-  <!-- MLOps tracking (Track A) -->
+  <!-- MLOps tracking -->
   <rect x="980" y="520" width="360" height="130" rx="8" fill="#ecfeff" stroke="#0891b2" stroke-width="1.5"/>
-  <text x="1160" y="542" text-anchor="middle" font-size="12" font-weight="700" fill="#155e75">MLOps tracking (Track A)</text>
+  <text x="1160" y="542" text-anchor="middle" font-size="12" font-weight="700" fill="#155e75">MLOps tracking</text>
 
   <rect x="1000" y="554" width="320" height="28" rx="4" fill="#ffffff" stroke="#0891b2" stroke-width="1"/>
   <text x="1160" y="573" text-anchor="middle" font-size="11" fill="#155e75">MLflow — params / metrics / step traces</text>
@@ -195,5 +195,5 @@
   <line x1="320" y1="1103" x2="338" y2="1103" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
   <text x="346" y="1107" font-size="11" fill="#334155">Request / data flow</text>
 
-  <text x="700" y="1160" text-anchor="middle" font-size="10.5" fill="#94a3b8">One LLMProvider interface serves cloud Anthropic/OpenAI and local vLLM. Specs: docs/SPECS.md · Track A/B write-up: README.md</text>
+  <text x="700" y="1160" text-anchor="middle" font-size="10.5" fill="#94a3b8">One LLMProvider interface serves cloud Anthropic/OpenAI and local vLLM. Specs: docs/SPECS.md · Write-up: README.md</text>
 </svg>

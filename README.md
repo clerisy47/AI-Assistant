@@ -13,7 +13,7 @@ sentence-transformers, and packaged to run with a single `docker compose up`.
 | Prompt engineering | System prompt in `app/agent/orchestrator.py`; temperature/top_p tuned per endpoint, see [Prompt engineering](#prompt-engineering) |
 | Structured output | Native JSON-schema constrained decoding, not a prompting trick — `POST /structured/summarize` |
 | Tool calling | Multi-turn agent loop, 3 tools, one of which is RAG retrieval itself — `app/agent/orchestrator.py` |
-| Verified research (Track B) | Multi-agent supervisor loop (`POST /research`): Research + Verifier, Skills progressive disclosure, custom eval harness — see [Verified research (Track B)](#verified-research-track-b) |
+| Verified research | Multi-agent supervisor loop (`POST /research`): Research + Verifier, Skills progressive disclosure, custom eval harness — see [Verified research](#verified-research) |
 | RAG pipeline | Chunking → local embeddings → Qdrant, exposed both as a callable tool and a classic retrieve-then-generate endpoint — `app/rag/` |
 | Local deployment (vLLM) | `docker compose --profile local-llm up`, serves Llama 3.1 8B Instruct by default |
 | Containerization | Multi-stage `Dockerfile` + `docker-compose.yml` |
@@ -77,7 +77,7 @@ flowchart TB
     Anthropic["Anthropic Claude API<br/>(external, cloud)"]
     OpenAI["OpenAI API<br/>(external, cloud)"]
 
-    subgraph MLOpsTrack["MLOps tracking (Track A)"]
+    subgraph MLOpsTrack["MLOps tracking"]
         MLflowBox["MLflow params / metrics / step traces"]
         EvidentlyBox["Evidently golden regression"]
         AirflowBox["Airflow DAG / make airflow-dry-run"]
@@ -158,12 +158,12 @@ tests/                          # Unit tests -- no live services needed, see Tes
 docs/architecture.{svg,md}      # Diagram (+ SPECS.md build plan)
 Dockerfile
 docker-compose.yml
-pyproject.toml / uv.lock         # Locked env (uv); see [Environment & Reproducibility (uv)](#environment--reproducibility-uv--track-a-a)
+pyproject.toml / uv.lock         # Locked env (uv); see [Environment & Reproducibility (uv)](#environment--reproducibility-uv)
 .env.example
 Makefile
 ```
 
-## Environment & Reproducibility (uv) — Track A §a
+## Environment & Reproducibility (uv)
 
 Dependencies are declared in [`pyproject.toml`](pyproject.toml) and **fully locked** in
 [`uv.lock`](uv.lock). Without a lockfile, local `pip install` and Docker could resolve
@@ -181,11 +181,11 @@ uv run pytest -v
 
 Docker uses the **same** lockfile: the image builder runs `uv sync --frozen` (no
 `uv export` → pip). Optional extras: `--extra dev` (pytest, PyYAML), `--extra mlops`
-(mlflow, evidently — used for Track A experiments and regression).
+(mlflow, evidently — used for experiments and regression).
 
 Install [uv](https://docs.astral.sh/uv/) if you do not have it yet.
 
-## Experiment tracking (MLflow) — Track A §b
+## Experiment tracking (MLflow)
 
 There is no trained model; experiments version **research system prompts** and
 retrieval/agent config. Each matrix row logs harness metrics plus **full step
@@ -204,7 +204,7 @@ Diagnoses: [`prompts/CHANGELOG.md`](prompts/CHANGELOG.md). Comparison export:
 [`mlops/reports/mlflow_comparison.md`](mlops/reports/mlflow_comparison.md). UI:
 `MLFLOW_TRACKING_URI=./mlruns MLFLOW_ALLOW_FILE_STORE=true uv run --extra mlops mlflow ui`.
 
-## Monitoring & drift (Evidently) — Track A §c
+## Monitoring & drift (Evidently)
 
 Fixed **reference** answers live in [`eval/golden_set.yaml`](eval/golden_set.yaml)
 (approved `prompt_v3`-aligned baselines). **Current** answers come from the same
@@ -233,9 +233,9 @@ tag `promoted=true` only if `pct_tests_passed >= EVIDENTLY_PASS_THRESHOLD` (defa
 Judge sanity: scripted heuristics match human reading of golden currents;
 `--bad-prompt-demo` fails both checks as expected.
 
-Scheduled regression (orchestration) is documented under [Orchestration (Airflow) — Track A §d](#orchestration-airflow--track-a-d).
+Scheduled regression (orchestration) is documented under [Orchestration (Airflow)](#orchestration-airflow).
 
-## Orchestration (Airflow) — Track A §d
+## Orchestration (Airflow)
 
 Nightly regression uses the same Python callables for Airflow and for a
 cluster-free dry-run. Full Airflow is optional (not in `uv sync --extra mlops`).
@@ -264,7 +264,7 @@ at `mlops/airflow/dags/` (or copy the DAG file), and ensure the worker can
 
 ### Grader quick path
 
-Assessment runbook (no live LLM / Qdrant required for the scripted Track A/B path):
+Assessment runbook (no live LLM / Qdrant required for the scripted path):
 
 ```bash
 uv sync --extra dev --extra mlops
@@ -403,7 +403,7 @@ Optional fields: `"provider"` (`"anthropic"|"openai"|"local"`, overrides
 
 Additive path (does not replace `/chat`). Supervisor runs Research ↔ Verifier
 until evidence is sufficient or a hard budget stops the loop. See
-[Verified research (Track B)](#verified-research-track-b).
+[Verified research](#verified-research).
 
 **Live demo path** (after `make up` or `docker compose up --build`):
 
@@ -589,7 +589,7 @@ per-request `provider` override, so you can compare, say, Claude against a
 locally hosted Llama 3.1 answering the exact same prompt without restarting
 anything.
 
-## Verified research (Track B)
+## Verified research
 
 Cross-source verified research answers corpus questions by searching (often
 more than once), drafting, and verifying claims against structured evidence —
@@ -670,7 +670,7 @@ Scheduled regression (Phase 13) without an Airflow cluster:
 `make airflow-dry-run` (or `--simulate-degrade` to demo the alert branch).
 
 For the verified-research harness and failure-injection eval case, see
-[Verified research (Track B)](#verified-research-track-b) (`make eval` →
+[Verified research](#verified-research) (`make eval` →
 [`eval/report.md`](eval/report.md)).
 
 Live integration testing (a real Qdrant, a real model) is intentionally out
