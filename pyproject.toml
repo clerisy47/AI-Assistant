@@ -24,7 +24,8 @@ dev = [
     "pytest==9.1.1",
     "PyYAML==6.0.3",
 ]
-# Airflow stays out of the default mlops extra until Phase 13 (heavy install).
+# Airflow stays out of [mlops] (heavy). Phase 13 ships DAG + make airflow-dry-run;
+# install apache-airflow separately only if you want a local scheduler.
 mlops = [
     "mlflow>=2.14,<4",
     "evidently>=0.4.40,<1",

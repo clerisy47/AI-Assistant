@@ -63,6 +63,10 @@ class Settings(BaseSettings):
     EVIDENTLY_PASS_THRESHOLD: float = 0.8
     EVIDENTLY_JUDGE_PROVIDER: str = "openai"
     EVIDENTLY_JUDGE_MODEL: str = "gpt-4o-mini"
+    # Phase 13: scheduled regression — alert if either metric drops by this many pp
+    # vs the last MLflow run tagged promoted=true (absolute drop of 0.10 when default 10).
+    REGRESSION_DEGRADE_PP: float = 10.0
+    REGRESSION_WEBHOOK_URL: str = ""  # optional alert stub; empty = file-only
 
     # --- App ------------------------------------------------------------------------
     APP_HOST: str = "0.0.0.0"

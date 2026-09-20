@@ -1,4 +1,4 @@
-.PHONY: up up-local down logs test eval ingest fmt-check build mlflow-experiment evidently-regression
+.PHONY: up up-local down logs test eval ingest fmt-check build mlflow-experiment evidently-regression airflow-dry-run
 
 up:            ## Start app + Qdrant, using a cloud LLM provider
 	docker compose up --build
@@ -33,3 +33,7 @@ mlflow-experiment:  ## Phase 11: prompt matrix → MLflow + mlops/reports/mlflow
 evidently-regression:  ## Phase 12: golden set → Evidently suite + pct_tests_passed → MLflow
 	uv sync --extra mlops --extra dev
 	MLFLOW_DISABLE_AGENT_HINT=1 uv run --extra mlops python -m mlops.evidently_regression --prompt-version prompt_v3
+
+airflow-dry-run:  ## Phase 13: same callables as the DAG (no Airflow cluster)
+	uv sync --extra mlops --extra dev
+	MLFLOW_DISABLE_AGENT_HINT=1 uv run --extra mlops python -m mlops.regression_pipeline --prompt-version prompt_v3

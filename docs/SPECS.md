@@ -1,6 +1,6 @@
 # Specs — Verified Research Agent + MLOps
 
-**Status:** In progress — Phases 0–12 complete; next is Phase 13 (Airflow DAG)  
+**Status:** In progress — Phases 0–13 complete; next is Phase 14 (MLOps docs polish)  
 **Base:** Existing W15 assistant (`POST /chat` tool loop, RAG-as-tool, FastAPI + Qdrant)  
 **Tracks covered:**
 - **Track B (Agentic AI):** Cross-source verified research with a multi-agent loop, context engineering, and a custom eval harness (Phases 0–9).
@@ -153,7 +153,7 @@ Each phase has: goal, deliverables, acceptance criteria, and suggested file touc
 | 10 | Environment (`uv`) | DONE | `pyproject.toml`, `uv.lock`, Makefile/Dockerfile/`uv sync --frozen` |
 | 11 | MLflow experiments | DONE | `prompts/prompt_v{1,2,3}.md`, `CHANGELOG.md`, `mlops/tracking.py`, `experiment_runner.py`, `reports/mlflow_comparison.md` |
 | 12 | Evidently regression | DONE | `eval/golden_set.yaml`, `mlops/evidently_regression.py`, `mlops/reports/evidently_prompt_v3.html`, `tests/test_evidently_regression.py` |
-| 13 | Airflow DAG | NOT STARTED | |
+| 13 | Airflow DAG | DONE | `mlops/airflow/dags/regression_eval_dag.py`, `mlops/regression_pipeline.py`, `make airflow-dry-run`, `tests/test_regression_pipeline.py` |
 | 14 | MLOps docs polish | NOT STARTED | |
 
 Coding agents: when you complete a phase, mark its deliverables `- [x]` below, set this table’s Status to `DONE` (or `PARTIAL`), and refresh the header `**Status:**` line.
@@ -657,16 +657,16 @@ For each `prompt_vN` (+ config):
 
 **Deliverables**
 
-- [ ] Airflow DAG under `mlops/airflow/dags/regression_eval_dag.py` (or `dags/`)
-- [ ] Schedule: e.g. `@daily` / cron `0 2 * * *` (document chosen schedule)
-- [ ] Tasks (suggested):
+- [x] Airflow DAG under `mlops/airflow/dags/regression_eval_dag.py` (or `dags/`)
+- [x] Schedule: e.g. `@daily` / cron `0 2 * * *` (document chosen schedule)
+- [x] Tasks (suggested):
   1. Ensure env / pull latest prompts config pointer
   2. Run eval harness (`uv run python -m eval.harness`)
   3. Run Evidently regression suite
   4. Log metrics to MLflow
   5. **Branch on degradation:** if `task_completion_rate` or `pct_tests_passed` drops more than threshold vs last promoted run → mark run failed / write alert artifact / optional webhook stub
-- [ ] Document local how-to: `astro` / `airflow standalone` / docker-compose profile `airflow` — pick one and keep it runnable
-- [ ] If Airflow is too heavy for the grader’s machine, still ship the DAG code + a `make airflow-dry-run` that executes the same Python callables without a full cluster
+- [x] Document local how-to: `astro` / `airflow standalone` / docker-compose profile `airflow` — pick one and keep it runnable
+- [x] If Airflow is too heavy for the grader’s machine, still ship the DAG code + a `make airflow-dry-run` that executes the same Python callables without a full cluster
 
 **Acceptance**
 
@@ -674,6 +674,8 @@ For each `prompt_vN` (+ config):
 - DAG code is present and the callable pipeline runs outside Airflow for demos.
 
 **Suggested paths:** `mlops/airflow/dags/regression_eval_dag.py`, `docker-compose.yml` profile or docs-only dry-run
+
+**Notes (implemented):** Runtime = DAG + `make airflow-dry-run` (no compose Airflow profile). Shared callables in `mlops/regression_pipeline.py`. Schedule `0 2 * * *`. Degrade if either rate drops &gt; `REGRESSION_DEGRADE_PP` (default 10) vs last `promoted=true` MLflow run; missing baseline → skip compare. Alert file + optional `REGRESSION_WEBHOOK_URL` stub. `--simulate-degrade` for demos.
 
 ---
 
@@ -748,7 +750,7 @@ For each `prompt_vN` (+ config):
 - [x] Evidently golden set + Test Suite with ≥2 judge checks (incl. reference correctness)
 - [x] `pct_tests_passed` (or equivalent) logged to MLflow; failing suite blocks promotion
 - [x] Evidently HTML reports present; judge sanity-check noted in README
-- [ ] Airflow DAG (or dry-run equivalent) + degradation threshold behavior documented
+- [x] Airflow DAG (or dry-run equivalent) + degradation threshold behavior documented
 - [ ] README sections a–d (uv, MLflow, Evidently, orchestration) reflect **this** implementation
 - [ ] Repo well-organized; setup/run/understand instructions clear for graders
 

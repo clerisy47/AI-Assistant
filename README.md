@@ -80,7 +80,7 @@ flowchart TB
     subgraph MLOpsTrack["MLOps tracking (Track A)"]
         MLflowBox["MLflow params / metrics / step traces"]
         EvidentlyBox["Evidently golden regression"]
-        AirflowStub["Airflow scheduled eval (Phase 13)"]
+        AirflowBox["Airflow DAG / make airflow-dry-run"]
     end
 
     Client -- HTTP --> Routers
@@ -88,13 +88,14 @@ flowchart TB
     LLMIface -. cloud mode .-> OpenAI
     Supervisor --> MLflowBox
     Supervisor --> EvidentlyBox
+    AirflowBox --> EvidentlyBox
+    AirflowBox --> MLflowBox
 
     classDef app fill:#eff6ff,stroke:#2563eb,color:#1e3a8a;
     classDef container fill:#f0fdf4,stroke:#16a34a,color:#14532d;
     classDef cloud fill:#fff7ed,stroke:#ea580c,color:#7c2d12;
     classDef client fill:#f8fafc,stroke:#334155,color:#0f172a;
     classDef research fill:#f5f3ff,stroke:#7c3aed,color:#4c1d95;
-    classDef stub fill:#f8fafc,stroke:#94a3b8,color:#64748b,stroke-dasharray: 5 5;
     classDef mlops fill:#ecfeff,stroke:#0891b2,color:#155e75;
 
     class Client client;
@@ -102,8 +103,7 @@ flowchart TB
     class Supervisor,Research,Verifier,Skill,Notes research;
     class Qdrant,VLLM container;
     class Anthropic,OpenAI cloud;
-    class MLflowBox,EvidentlyBox mlops;
-    class AirflowStub stub;
+    class MLflowBox,EvidentlyBox,AirflowBox mlops;
 ```
 
 A standalone image version is at [`docs/architecture.svg`](docs/architecture.svg)
@@ -150,7 +150,7 @@ app/
 └── api/                        # chat, research, rag, structured, health
 skills/verified_research/       # Runtime Skill loaded by the research agent
 prompts/                        # Versioned research system prompts (prompt_v1…)
-mlops/                          # MLflow + Evidently regression, reports/
+mlops/                          # MLflow + Evidently + Airflow DAG / dry-run
 eval/                           # Harness, cases.yaml, golden_set.yaml, report.md
 scripts/ingest_sample_docs.py   # CLI bulk ingestion
 sample_docs/                    # Sample corpus for RAG / research demos
@@ -234,6 +234,31 @@ Judge sanity: scripted heuristics match human reading of golden currents;
 `--bad-prompt-demo` fails both checks as expected.
 
 Airflow scheduled regression is Phase 13 (Track A §d).
+
+## Orchestration (Airflow) — Track A §d
+
+Nightly regression uses the same Python callables for Airflow and for a
+cluster-free dry-run. Full Airflow is optional (not in `uv sync --extra mlops`).
+
+| Field | Choice |
+|---|---|
+| Schedule | cron `0 2 * * *` (02:00 UTC daily); `catchup=False` |
+| DAG | [`mlops/airflow/dags/regression_eval_dag.py`](mlops/airflow/dags/regression_eval_dag.py) (`verified_research_regression_eval`) |
+| Pipeline | [`mlops/regression_pipeline.py`](mlops/regression_pipeline.py) — harness → Evidently → one MLflow run → degrade check |
+| Degrade rule | Fail if `completion_rate` **or** `pct_tests_passed` drops more than `REGRESSION_DEGRADE_PP` (default **10**) percentage points vs the newest MLflow run tagged `promoted=true` |
+| No baseline | Fresh clone / empty `mlruns`: skip compare (pass with warning) |
+| On degrade | Write [`mlops/reports/regression_alert.md`](mlops/reports/regression_alert.md); optional `REGRESSION_WEBHOOK_URL` POST stub; DAG task / dry-run exits non-zero |
+
+```bash
+# Primary demo path (no Airflow install):
+make airflow-dry-run
+# Exercise the degrade branch without waiting for a real regression:
+uv run --extra mlops python -m mlops.regression_pipeline --prompt-version prompt_v3 --simulate-degrade --no-mlflow
+```
+
+To run under Airflow: install Airflow on the host, point `AIRFLOW__CORE__DAGS_FOLDER`
+at `mlops/airflow/dags/` (or copy the DAG file), and ensure the worker can
+`uv run` this repo with `--extra mlops`.
 
 ## Getting started
 
@@ -320,6 +345,8 @@ environment variables:
 | `GOLDEN_SET_PATH` | `eval/golden_set.yaml` | Evidently reference set |
 | `EVIDENTLY_PASS_THRESHOLD` | `0.8` | Min `pct_tests_passed` to promote a version |
 | `EVIDENTLY_JUDGE_PROVIDER` / `EVIDENTLY_JUDGE_MODEL` | `openai` / `gpt-4o-mini` | Live `--judge-mode llm` only |
+| `REGRESSION_DEGRADE_PP` | `10` | Alert if completion or pass rate drops by this many pp vs last promoted |
+| `REGRESSION_WEBHOOK_URL` | empty | Optional POST stub on degradation (file alert always written) |
 
 ## API reference
 
@@ -618,6 +645,9 @@ make test
 
 Evidently regression unit tests use scripted judges (no judge API key). Full
 golden-set run + HTML: `make evidently-regression`.
+
+Scheduled regression (Phase 13) without an Airflow cluster:
+`make airflow-dry-run` (or `--simulate-degrade` to demo the alert branch).
 
 For the verified-research harness and failure-injection eval case, see
 [Verified research (Track B)](#verified-research-track-b) (`make eval` →

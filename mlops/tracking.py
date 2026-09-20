@@ -140,3 +140,40 @@ def log_evidently_report(
         notes = Path(notes_path)
         if notes.is_file():
             mlflow.log_artifact(str(notes), artifact_path=artifact_subdir)
+
+
+def get_last_promoted_metrics(
+    *,
+    experiment_name: str | None = None,
+    tracking_uri: str | None = None,
+) -> Optional[dict[str, Any]]:
+    """Return metrics from the newest run tagged ``promoted=true``, or None.
+
+    Used by the Phase 13 regression pipeline to compare current harness /
+    Evidently rates against the last promoted baseline.
+    """
+    mlflow = _import_mlflow()
+    configure_mlflow(tracking_uri=tracking_uri, experiment_name=experiment_name)
+    client = mlflow.tracking.MlflowClient()
+    name = experiment_name or settings.MLFLOW_EXPERIMENT_NAME
+    exp = client.get_experiment_by_name(name)
+    if exp is None:
+        return None
+    runs = client.search_runs(
+        experiment_ids=[exp.experiment_id],
+        filter_string="tags.promoted = 'true'",
+        order_by=["attributes.start_time DESC"],
+        max_results=1,
+    )
+    if not runs:
+        return None
+    run = runs[0]
+    metrics = dict(run.data.metrics or {})
+    return {
+        "run_id": run.info.run_id,
+        "prompt_version": (run.data.tags or {}).get("prompt_version")
+        or (run.data.params or {}).get("prompt_version"),
+        "completion_rate": metrics.get("completion_rate"),
+        "pct_tests_passed": metrics.get("pct_tests_passed"),
+        "metrics": metrics,
+    }
