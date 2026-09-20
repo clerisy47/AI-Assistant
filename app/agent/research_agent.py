@@ -13,6 +13,7 @@ from typing import Optional
 
 from app.agent.context_budget import compact_messages
 from app.agent.evidence_notes import EvidenceNotes
+from app.agent.prompts import load_research_prompt
 from app.config import settings
 from app.llm.base import LLMMessage, LLMProvider
 from app.llm.usage import TokenUsage, usage_from_generate
@@ -23,7 +24,8 @@ from app.tools.skill_tool import build_skills_system_prefix
 
 logger = logging.getLogger(__name__)
 
-RESEARCH_SYSTEM_PROMPT = """\
+# Fallback only if prompts/ is unavailable (e.g. broken checkout); prefer load_research_prompt.
+RESEARCH_SYSTEM_PROMPT_FALLBACK = """\
 You are a corpus-backed research agent. Your job is to gather evidence from the \
 knowledge base, record structured notes, and produce a grounded draft answer.
 
@@ -92,7 +94,12 @@ class ResearchAgent:
         )
 
     def _system_prompt(self) -> str:
-        return f"{RESEARCH_SYSTEM_PROMPT}\n\n{build_skills_system_prefix()}"
+        try:
+            body = load_research_prompt()
+        except (FileNotFoundError, ValueError) as exc:
+            logger.warning("Falling back to embedded research prompt: %s", exc)
+            body = RESEARCH_SYSTEM_PROMPT_FALLBACK
+        return f"{body}\n\n{build_skills_system_prefix()}"
 
     def _result(
         self,

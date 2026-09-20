@@ -77,7 +77,7 @@ flowchart TB
     Anthropic["Anthropic Claude API<br/>(external, cloud)"]
     OpenAI["OpenAI API<br/>(external, cloud)"]
 
-    subgraph MLOpsStub["MLOps tracking — planned Phase 11–13"]
+    subgraph MLOpsStub["MLOps tracking — Phase 11+ (Evidently/Airflow planned)"]
         MLflowStub["MLflow params / metrics / step traces"]
         EvidentlyStub["Evidently golden regression"]
         AirflowStub["Airflow scheduled eval"]
@@ -86,7 +86,7 @@ flowchart TB
     Client -- HTTP --> Routers
     LLMIface -. cloud mode .-> Anthropic
     LLMIface -. cloud mode .-> OpenAI
-    Supervisor -. future .-> MLOpsStub
+    Supervisor -. Phase 11 .-> MLOpsStub
 
     classDef app fill:#eff6ff,stroke:#2563eb,color:#1e3a8a;
     classDef container fill:#f0fdf4,stroke:#16a34a,color:#14532d;
@@ -146,6 +146,8 @@ app/
 ├── schemas/                    # Pydantic request/response models (incl. research)
 └── api/                        # chat, research, rag, structured, health
 skills/verified_research/       # Runtime Skill loaded by the research agent
+prompts/                        # Versioned research system prompts (prompt_v1…)
+mlops/                          # MLflow tracking, experiment runner, reports/
 eval/                           # From-scratch harness, cases.yaml, report.md
 scripts/ingest_sample_docs.py   # CLI bulk ingestion
 sample_docs/                    # Sample corpus for RAG / research demos
@@ -179,6 +181,26 @@ Docker uses the **same** lockfile: the image builder runs `uv sync --frozen` (no
 (mlflow, evidently — used from Phase 11+).
 
 Install [uv](https://docs.astral.sh/uv/) if you do not have it yet.
+
+## Experiment tracking (MLflow) — Track A §b
+
+There is no trained model; experiments version **research system prompts** and
+retrieval/agent config. Each matrix row logs harness metrics plus **full step
+traces** (JSONL artifacts) to MLflow.
+
+```bash
+make mlflow-experiment
+# or: uv sync --extra mlops --extra dev && uv run --extra mlops python -m mlops.experiment_runner
+```
+
+| What varied | Measured | Winner / trade-off |
+|---|---|---|
+| `prompt_v1` → `v2` → `v3` plus `TOP_K` / `TOOL_RESULT_MAX_CHARS` ([`mlops/experiment_matrix.yaml`](mlops/experiment_matrix.yaml)) | Completion rate, tool-call correctness, mean iterations/tokens, failure counts | **`prompt_v3`** — keeps v2 draft-naming + `TOP_K=6`, tightens tool-result cap for leaner context (less raw chunk text vs v1 defaults) |
+
+Diagnoses: [`prompts/CHANGELOG.md`](prompts/CHANGELOG.md). Comparison export:
+[`mlops/reports/mlflow_comparison.md`](mlops/reports/mlflow_comparison.md). UI:
+`MLFLOW_TRACKING_URI=./mlruns MLFLOW_ALLOW_FILE_STORE=true uv run --extra mlops mlflow ui`.
+Evidently regression and Airflow scheduling are Phase 12–13.
 
 ## Getting started
 
@@ -259,6 +281,9 @@ environment variables:
 | `TOOL_RESULT_MAX_CHARS` / `EVIDENCE_EXCERPT_MAX_CHARS` | `2000` / `500` | Context caps for research path |
 | `SKILLS_DIR` | `skills` | Progressive-disclosure Skills root |
 | `INJECT_FAILURE` | empty | Eval/demo: `kb_unavailable` \| `kb_timeout` \| `kb_malformed` |
+| `PROMPTS_DIR` / `PROMPT_VERSION` | `prompts` / `prompt_v1` | Active research system prompt file |
+| `MLFLOW_TRACKING_URI` | `./mlruns` | Local MLflow file store (set `MLFLOW_ALLOW_FILE_STORE=true` for MLflow 3.x) |
+| `MLFLOW_EXPERIMENT_NAME` | `verified-research` | Experiment name for `make mlflow-experiment` |
 
 ## API reference
 

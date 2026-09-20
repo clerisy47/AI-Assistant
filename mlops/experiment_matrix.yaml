@@ -1,0 +1,30 @@
+# Phase 11 experiment matrix: prompt version + config overrides.
+# Scripted harness runs each row; metrics logged to MLflow.
+
+versions:
+  - prompt_version: prompt_v1
+    description: Baseline research prompt; default retrieval/agent config
+    config: {}
+    artifact_cases:
+      - sufficient_first_search
+      - weak_answer_soft
+      - kb_unavailable_recognized
+
+  - prompt_version: prompt_v2
+    description: Explicit provider/protocol naming; deeper top_k after soft failure
+    config:
+      TOP_K: 6
+    artifact_cases:
+      - sufficient_first_search
+      - weak_answer_soft
+      - needs_re_search
+
+  - prompt_version: prompt_v3
+    description: Clarify-first + no fabrications; tighter tool-result cap for tokens
+    config:
+      TOP_K: 6
+      TOOL_RESULT_MAX_CHARS: 1500
+    artifact_cases:
+      - sufficient_first_search
+      - empty_retrieval_cascade
+      - clarification

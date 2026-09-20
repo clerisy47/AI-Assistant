@@ -1,6 +1,6 @@
 # Specs — Verified Research Agent + MLOps
 
-**Status:** In progress — Phases 0–10 complete; next is Phase 11 (MLflow experiments)  
+**Status:** In progress — Phases 0–11 complete; next is Phase 12 (Evidently regression)  
 **Base:** Existing W15 assistant (`POST /chat` tool loop, RAG-as-tool, FastAPI + Qdrant)  
 **Tracks covered:**
 - **Track B (Agentic AI):** Cross-source verified research with a multi-agent loop, context engineering, and a custom eval harness (Phases 0–9).
@@ -151,7 +151,7 @@ Each phase has: goal, deliverables, acceptance criteria, and suggested file touc
 | 8 | Track B docs + architecture | DONE | `README.md` Track B a–c + additional; `docs/architecture.md` / `.svg` (supervisor + research↔verifier; MLOps stubbed) |
 | 9 | Polish / Track B checklist | DONE | `sample_docs/{about_this_assistant,tools_and_usage,rag_pipeline}.md`; README `/research` demo; `eval/report.md`; §8 Track B checked |
 | 10 | Environment (`uv`) | DONE | `pyproject.toml`, `uv.lock`, Makefile/Dockerfile/`uv sync --frozen` |
-| 11 | MLflow experiments | NOT STARTED | |
+| 11 | MLflow experiments | DONE | `prompts/prompt_v{1,2,3}.md`, `CHANGELOG.md`, `mlops/tracking.py`, `experiment_runner.py`, `reports/mlflow_comparison.md` |
 | 12 | Evidently regression | NOT STARTED | |
 | 13 | Airflow DAG | NOT STARTED | |
 | 14 | MLOps docs polish | NOT STARTED | |
@@ -592,17 +592,17 @@ For each `prompt_vN` (+ config):
 
 #### Minimum experiment budget
 
-- [ ] At least **3** prompt/configuration versions run end-to-end
-- [ ] MLflow comparison (UI export or Markdown table under `mlops/reports/`) showing which version wins and the trade-off (e.g. completion ↑ vs tokens ↑)
-- [ ] Exported run comparison checked into repo or documented path to reload (`mlruns/` or remote tracking URI)
+- [x] At least **3** prompt/configuration versions run end-to-end
+- [x] MLflow comparison (UI export or Markdown table under `mlops/reports/`) showing which version wins and the trade-off (e.g. completion ↑ vs tokens ↑)
+- [x] Exported run comparison checked into repo or documented path to reload (`mlruns/` or remote tracking URI)
 
 **Deliverables**
 
-- [ ] `mlops/tracking.py` (or `eval/mlflow_runner.py`) — start run, log params/metrics/artifacts
-- [ ] Step-trace writer hooked in supervisor / orchestrator
-- [ ] `prompts/prompt_v{1,2,3}.md` + `CHANGELOG.md`
-- [ ] `mlops/reports/mlflow_comparison.md` (or HTML/CSV export)
-- [ ] Config: `MLFLOW_TRACKING_URI` (default `./mlruns`)
+- [x] `mlops/tracking.py` (or `eval/mlflow_runner.py`) — start run, log params/metrics/artifacts
+- [x] Step-trace writer hooked in supervisor / orchestrator
+- [x] `prompts/prompt_v{1,2,3}.md` + `CHANGELOG.md`
+- [x] `mlops/reports/mlflow_comparison.md` (or HTML/CSV export)
+- [x] Config: `MLFLOW_TRACKING_URI` (default `./mlruns`)
 
 **Acceptance**
 
@@ -611,6 +611,8 @@ For each `prompt_vN` (+ config):
 - README §b states what varied, what was measured, which config won, and the trade-off.
 
 **Suggested paths:** `prompts/`, `mlops/tracking.py`, `mlops/reports/`, extend `app/agent/supervisor.py`
+
+**Notes (implemented):** Custom JSONL traces via `app/agent/trace_schema.py` + `mlflow.log_artifact` (not autolog). Scripted harness drives comparable runs (`make mlflow-experiment`). MLflow 3.x file store allowed via `MLFLOW_ALLOW_FILE_STORE` in `configure_mlflow`.
 
 ---
 

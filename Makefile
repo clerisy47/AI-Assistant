@@ -1,4 +1,4 @@
-.PHONY: up up-local down logs test eval ingest fmt-check build
+.PHONY: up up-local down logs test eval ingest fmt-check build mlflow-experiment
 
 up:            ## Start app + Qdrant, using a cloud LLM provider
 	docker compose up --build
@@ -25,3 +25,7 @@ test:          ## Run the unit test suite locally (no Docker needed)
 eval:          ## Run verified-research eval harness (scripted; writes eval/report.md)
 	uv sync --extra dev
 	uv run python -m eval.harness
+
+mlflow-experiment:  ## Phase 11: prompt matrix → MLflow + mlops/reports/mlflow_comparison.md
+	uv sync --extra mlops --extra dev
+	MLFLOW_DISABLE_AGENT_HINT=1 uv run --extra mlops python -m mlops.experiment_runner

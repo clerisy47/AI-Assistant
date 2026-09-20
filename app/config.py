@@ -54,6 +54,12 @@ class Settings(BaseSettings):
     # Failure injection for eval/demo: "" | kb_unavailable | kb_timeout | kb_malformed
     INJECT_FAILURE: str = ""
 
+    # --- MLOps / prompt experiments (Phase 11+) --------------------------------------
+    PROMPTS_DIR: str = "prompts"
+    PROMPT_VERSION: str = "prompt_v1"
+    MLFLOW_TRACKING_URI: str = "./mlruns"
+    MLFLOW_EXPERIMENT_NAME: str = "verified-research"
+
     # --- App ------------------------------------------------------------------------
     APP_HOST: str = "0.0.0.0"
     APP_PORT: int = 8080
